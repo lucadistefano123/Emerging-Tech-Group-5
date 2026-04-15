@@ -121,6 +121,8 @@ const typeDefs = gql`
 
     markNotificationAsRead(notificationId: ID!): Notification!
 
+    suggestCategoryForIssue(issueId: ID!): String!
+
     chatbot(message: String!): ChatbotResponse!
   }
 `;

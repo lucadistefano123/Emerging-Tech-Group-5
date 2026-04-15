@@ -11,6 +11,7 @@ import { connectDB } from "./config/db.js";
 dotenv.config();
 
 const app = express();
+const PORT = process.env.GATEWAY_PORT || 5000;
 
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5173", "http://localhost:3000"],
@@ -43,8 +44,8 @@ const startServer = async () => {
       context: async ({ req, res }) => ({ req, res })
     }));
 
-    app.listen(5000, () => {
-      console.log("Server running on http://localhost:5000/graphql");
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}/graphql`);
     });
   } catch (error) {
     console.error(error.message);

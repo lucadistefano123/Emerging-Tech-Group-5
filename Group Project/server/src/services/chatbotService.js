@@ -1,75 +1,448 @@
 import Issue from "../models/Issue.js";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+// Initialize Gemini model (lazy initialization)
+let model = null;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const VALID_CLASSIFICATION_CATEGORIES = [
+  "Infrastructure",
+  "Environment",
+  "Safety",
+  "Transportation",
+  "Utilities",
+  "Health",
+  "Education",
+  "Other"
+];
 
-const STATUS_ORDER = ["open", "in_progress", "resolved"];
-const responseCache = new Map();
-const CACHE_TTL = 60 * 60 * 1000;
-
-const getCacheKey = (message, analyticsSnapshot) => {
-  return `${message.toLowerCase()}:${analyticsSnapshot}`;
-};
-
-const getCachedReply = (cacheKey) => {
-  const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.reply;
+const getModel = () => {
+  if (!model && process.env.GOOGLE_API_KEY) {
+    try {
+      model = new ChatGoogleGenerativeAI({
+        model: GEMINI_MODEL,
+        apiKey: process.env.GOOGLE_API_KEY,
+        temperature: 0.3,
+      });
+    } catch (error) {
+      console.error("Failed to initialize Gemini model:", error);
+      return null;
+    }
   }
-  responseCache.delete(cacheKey);
-  return null;
+  return model;
 };
 
-const setCachedReply = (cacheKey, reply) => {
-  responseCache.set(cacheKey, { reply, timestamp: Date.now() });
-};
+// LangGraph Tools
+const analyticsTool = tool(async () => {
+  try {
+    const issues = await Issue.find();
+    const statusCounts = [
+      { label: "open", value: issues.filter(i => i.status === "open").length },
+      { label: "in progress", value: issues.filter(i => i.status === "in_progress").length },
+      { label: "resolved", value: issues.filter(i => i.status === "resolved").length }
+    ];
+    const categoryMap = new Map();
+    issues.forEach(issue => {
+      const cat = issue.category || "General";
+      categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+    });
+    const categoryCounts = Array.from(categoryMap.entries()).map(([label, value]) => ({ label, value }));
 
-const normalizeCategory = (category) => category?.trim() || "General";
-
-const getDateKey = (value) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown";
+    return {
+      totalIssues: issues.length,
+      statusCounts,
+      categoryCounts,
+      summary: `Total issues: ${issues.length}, Open: ${statusCounts[0].value}, In Progress: ${statusCounts[1].value}, Resolved: ${statusCounts[2].value}`
+    };
+  } catch (error) {
+    console.error("Analytics tool error:", error);
+    return { totalIssues: 0, statusCounts: [], categoryCounts: [], summary: "Error retrieving analytics" };
   }
+}, {
+  name: "analytics",
+  description: "Get comprehensive analytics about municipal issues including counts by status and category",
+  schema: z.object({}),
+});
 
-  return date.toISOString().slice(0, 10);
+const searchTool = tool(async ({ query }) => {
+  try {
+    const issues = await Issue.find({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } }
+      ]
+    }).limit(10);
+
+    const results = issues.map(issue => ({
+      id: issue._id.toString(),
+      title: issue.title,
+      description: issue.description.substring(0, 200),
+      category: issue.category,
+      status: issue.status,
+      createdAt: issue.createdAt
+    }));
+
+    return {
+      results,
+      count: results.length,
+      summary: `Found ${results.length} issues matching "${query}"`
+    };
+  } catch (error) {
+    console.error("Search tool error:", error);
+    return { results: [], count: 0, summary: "Error performing search" };
+  }
+}, {
+  name: "search",
+  description: "Search for municipal issues by title or description",
+  schema: z.object({
+    query: z.string().describe("The search query to find relevant issues"),
+  }),
+});
+
+const trendsTool = tool(async () => {
+  try {
+    const issues = await Issue.find().sort({ createdAt: -1 });
+
+    // Basic daily trends
+    const trendMap = new Map();
+    issues.forEach(issue => {
+      const date = new Date(issue.createdAt).toISOString().slice(0, 10);
+      trendMap.set(date, (trendMap.get(date) || 0) + 1);
+    });
+    const dailyTrend = Array.from(trendMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-7)
+      .map(([label, value]) => ({ label, value }));
+
+    // AI-powered clustering of similar issues
+    const categoryClusters = {};
+    issues.forEach(issue => {
+      const category = issue.category || "General";
+      if (!categoryClusters[category]) {
+        categoryClusters[category] = [];
+      }
+      categoryClusters[category].push({
+        id: issue._id.toString(),
+        title: issue.title,
+        description: issue.description.substring(0, 100)
+      });
+    });
+
+    // Find clusters within categories (similar titles/descriptions)
+    const clusters = [];
+    Object.entries(categoryClusters).forEach(([category, issues]) => {
+      if (issues.length > 1) {
+        // Simple clustering based on keyword similarity
+        const keywordGroups = {};
+        issues.forEach(issue => {
+          const keywords = issue.title.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+          const key = keywords.slice(0, 2).join(' '); // Use first 2 significant words as cluster key
+
+          if (!keywordGroups[key]) {
+            keywordGroups[key] = [];
+          }
+          keywordGroups[key].push(issue);
+        });
+
+        Object.entries(keywordGroups).forEach(([key, group]) => {
+          if (group.length > 1) {
+            clusters.push({
+              category,
+              clusterKey: key,
+              count: group.length,
+              examples: group.slice(0, 3).map(i => i.title)
+            });
+          }
+        });
+      }
+    });
+
+    return {
+      dailyTrend,
+      clusters,
+      summary: `Daily trends: ${dailyTrend.map(t => `${t.label}: ${t.value}`).join(', ')}. Found ${clusters.length} issue clusters.`
+    };
+  } catch (error) {
+    console.error("Trends tool error:", error);
+    return { dailyTrend: [], clusters: [], summary: "Error analyzing trends" };
+  }
+}, {
+  name: "trends",
+  description: "Analyze trends and identify clusters of similar municipal issues over time",
+  schema: z.object({}),
+});
+
+const classifyTool = tool(async ({ issueId }) => {
+  try {
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return { category: "General", confidence: 0, summary: "Issue not found" };
+    }
+
+    const llm = getModel();
+    if (!llm) {
+      return {
+        category: issue.category?.trim() || "General",
+        confidence: 0,
+        issueId,
+        title: issue.title,
+        summary: "AI classification unavailable"
+      };
+    }
+
+    const prompt = `Classify this municipal issue into one of these categories: Infrastructure, Environment, Safety, Transportation, Utilities, Health, Education, Other.
+
+Issue Title: ${issue.title}
+Issue Description: ${issue.description}
+
+Respond with ONLY the category name.`;
+
+    const response = await llm.invoke([{
+      role: "user",
+      content: prompt
+    }]);
+
+    const category = String(response.content ?? "").trim();
+    const finalCategory = VALID_CLASSIFICATION_CATEGORIES.includes(category) ? category : (issue.category?.trim() || "General");
+
+    return {
+      category: finalCategory,
+      issueId: issueId,
+      title: issue.title,
+      summary: `Issue "${issue.title}" classified as ${finalCategory}`
+    };
+  } catch (error) {
+    console.error("Classify tool error:", error);
+    return { category: "General", confidence: 0, summary: "Error classifying issue" };
+  }
+}, {
+  name: "classify",
+  description: "Classify a specific municipal issue into predefined categories using AI",
+  schema: z.object({
+    issueId: z.string().describe("The ID of the issue to classify"),
+  }),
+});
+
+// Create a simple LangGraph agent using built-in tools
+const createAgent = () => {
+  const llm = getModel();
+
+  // Simple agent function that uses tools directly
+  const agent = async (messages) => {
+    try {
+      // Get the last user message
+      const lastMessage = messages[messages.length - 1];
+      const userQuery = lastMessage.content.toLowerCase();
+
+      let toolResults = {};
+
+      // Simple keyword-based tool selection and execution
+      if (userQuery.includes("analytics") || userQuery.includes("how many") || userQuery.includes("total") || userQuery.includes("count")) {
+        toolResults.analytics = await analyticsTool.invoke({});
+      }
+
+      if (userQuery.includes("search") || userQuery.includes("find")) {
+        const query = userQuery.includes("search") ? lastMessage.content.split("search")[1]?.trim() || lastMessage.content : lastMessage.content;
+        toolResults.search = await searchTool.invoke({ query });
+      }
+
+      if (userQuery.includes("trend") || userQuery.includes("over time") || userQuery.includes("daily")) {
+        toolResults.trends = await trendsTool.invoke({});
+      }
+
+      if (userQuery.includes("classify") || userQuery.includes("category")) {
+        // For demo, classify the first issue
+        const issues = await Issue.find().limit(1);
+        if (issues.length > 0) {
+          toolResults.classify = await classifyTool.invoke({ issueId: issues[0]._id.toString() });
+        }
+      }
+
+      // If no tools were triggered, run analytics as default
+      if (Object.keys(toolResults).length === 0) {
+        toolResults.analytics = await analyticsTool.invoke({});
+      }
+
+      if (!llm) {
+        const fallbackParts = [];
+
+        if (toolResults.analytics?.summary) {
+          fallbackParts.push(toolResults.analytics.summary);
+        }
+        if (toolResults.search?.count !== undefined) {
+          fallbackParts.push(toolResults.search.summary);
+        }
+        if (toolResults.trends?.summary) {
+          fallbackParts.push(toolResults.trends.summary);
+        }
+        if (toolResults.classify?.summary) {
+          fallbackParts.push(toolResults.classify.summary);
+        }
+
+        return {
+          messages: [...messages, {
+            role: "assistant",
+            content: fallbackParts.join(" ") || "I found some issue data, but the AI model is currently unavailable.",
+            toolResults
+          }]
+        };
+      }
+
+      // Generate response using AI
+      const resultsStr = JSON.stringify(toolResults, null, 2);
+      const prompt = `You are CivicCase AI, a municipal issue analysis assistant.
+
+Based on the tool results below, provide a helpful response to: "${lastMessage.content}"
+
+Tool Results: ${resultsStr}
+
+Provide a concise, informative response about the municipal issues.`;
+
+      const response = await llm.invoke([{
+        role: "user",
+        content: prompt
+      }]);
+
+      return {
+        messages: [...messages, {
+          role: "assistant",
+          content: String(response.content ?? ""),
+          toolResults
+        }]
+      };
+
+    } catch (error) {
+      console.error("Agent execution error:", error);
+      return {
+        messages: [...messages, {
+          role: "assistant",
+          content: "I encountered an error while processing your request. Let me provide some basic analytics instead.",
+          error: true
+        }]
+      };
+    }
+  };
+
+  return agent;
 };
 
+// Initialize the agent
+let agent = null;
+const getAgent = () => {
+  if (!agent) {
+    agent = createAgent();
+  }
+  return agent;
+};
+
+// Main chatbot function using LangGraph agent
+export const getChatbotReply = async (message) => {
+  try {
+    console.log("Chatbot called with message:", message);
+    const apiKey = process.env.GOOGLE_API_KEY;
+
+    if (!apiKey) {
+      console.log("No API key available");
+      // Fallback without AI
+      const issues = await Issue.find();
+      const analytics = buildAnalytics(issues);
+      return {
+        reply: "AI service is currently unavailable. Here are the current analytics.",
+        analytics,
+        aiEnabled: false
+      };
+    }
+
+    console.log("API key available, initializing LangGraph agent");
+    // Use LangGraph agent
+    const agentInstance = getAgent();
+    console.log("Agent instance created");
+
+    const systemPrompt = `You are CivicCase AI, an intelligent municipal issue analysis assistant powered by LangGraph.
+
+You have access to these tools:
+- analytics: Get comprehensive analytics about municipal issues
+- search: Search for specific issues by title or description
+- trends: Analyze trends and identify clusters of similar issues
+- classify: Classify issues into categories using AI
+
+Always use the appropriate tools to provide accurate, helpful responses about municipal issues.
+Be concise but informative in your responses.`;
+
+    const messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ];
+
+    console.log("Invoking agent with messages:", messages.length);
+    const result = await agentInstance(messages);
+    console.log("Agent result received");
+
+    // Extract the final response
+    const finalMessage = result.messages[result.messages.length - 1];
+    let reply = String(finalMessage?.content ?? "").trim();
+    const usedAiResponse = !finalMessage?.error;
+
+    console.log("Final reply:", reply);
+
+    // If the response is too generic, enhance it with analytics
+    const issues = await Issue.find();
+    const analytics = buildAnalytics(issues);
+    if (!reply) {
+      reply = "I couldn't generate a detailed AI response, but I was able to gather the latest municipal issue analytics.";
+    }
+    if (reply.includes("I analyzed") || reply.length < 50) {
+      reply += `\n\nCurrent system status: ${analytics.totalIssues} total issues (${analytics.openIssues} open, ${analytics.resolvedIssues} resolved).`;
+    }
+
+    return {
+      reply,
+      analytics,
+      aiEnabled: usedAiResponse,
+      agentUsed: true
+    };
+  } catch (error) {
+    console.error("LangGraph agent error:", error);
+
+    // Fallback to basic analytics
+    const issues = await Issue.find();
+    const analytics = buildAnalytics(issues);
+    return {
+      reply: "I apologize, but I'm having trouble processing your request right now. Here are the current analytics.",
+      analytics,
+      aiEnabled: false,
+      agentUsed: false
+    };
+  }
+};
+
+// Helper function
 const buildAnalytics = (issues) => {
-  const statusCounts = STATUS_ORDER.map((status) => ({
-    label: status.replace("_", " "),
-    value: issues.filter((issue) => issue.status === status).length
-  }));
+  const statusCounts = [
+    { label: "open", value: issues.filter(i => i.status === "open").length },
+    { label: "in progress", value: issues.filter(i => i.status === "in_progress").length },
+    { label: "resolved", value: issues.filter(i => i.status === "resolved").length }
+  ];
 
-  const categoryMap = issues.reduce((accumulator, issue) => {
-    const key = normalizeCategory(issue.category);
-    accumulator.set(key, (accumulator.get(key) || 0) + 1);
-    return accumulator;
-  }, new Map());
+  const categoryMap = new Map();
+  issues.forEach(issue => {
+    const cat = issue.category || "General";
+    categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+  });
 
-  const categoryCounts = [...categoryMap.entries()]
+  const categoryCounts = Array.from(categoryMap.entries())
     .map(([label, value]) => ({ label, value }))
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 6);
+    .sort((a, b) => b.value - a.value);
 
-  const trendClusters = [...categoryMap.entries()]
-    .map(([label, value]) => ({
-      label,
-      count: value,
-      exampleIssue: issues.find((issue) => normalizeCategory(issue.category) === label)?.title || "Example report"
-    }))
-    .sort((left, right) => right.count - left.count)
-    .slice(0, 5);
+  const trendMap = new Map();
+  issues.forEach(issue => {
+    const date = new Date(issue.createdAt).toISOString().slice(0, 10);
+    trendMap.set(date, (trendMap.get(date) || 0) + 1);
+  });
 
-  const trendMap = issues.reduce((accumulator, issue) => {
-    const key = getDateKey(issue.createdAt);
-    accumulator.set(key, (accumulator.get(key) || 0) + 1);
-    return accumulator;
-  }, new Map());
-
-  const dailyTrend = [...trendMap.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
+  const dailyTrend = Array.from(trendMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-7)
     .map(([label, value]) => ({ label, value }));
 
@@ -77,160 +450,31 @@ const buildAnalytics = (issues) => {
     .map((issue) => ({
       id: issue._id.toString(),
       title: issue.title,
-      category: normalizeCategory(issue.category),
+      category: issue.category?.trim() || "General",
       status: issue.status,
       latitude: issue.latitude,
       longitude: issue.longitude
     }))
-    .filter(
-      (issue) =>
-        Number.isFinite(issue.latitude) &&
-        Number.isFinite(issue.longitude)
-    );
+    .filter((issue) => Number.isFinite(issue.latitude) && Number.isFinite(issue.longitude));
+
+  const trendClusters = Array.from(categoryMap.entries())
+    .map(([label, value]) => ({
+      label,
+      count: value,
+      exampleIssue: issues.find((issue) => (issue.category?.trim() || "General") === label)?.title || "Example report"
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   return {
     totalIssues: issues.length,
+    openIssues: issues.filter(issue => issue.status === "open").length,
+    inProgressIssues: issues.filter(issue => issue.status === "in_progress").length,
+    resolvedIssues: issues.filter(issue => issue.status === "resolved").length,
     statusCounts,
     categoryCounts,
     dailyTrend,
     hotspots,
     trendClusters
   };
-};
-
-const getFallbackReply = (message, analytics) => {
-  const text = message.toLowerCase();
-  const openCount =
-    analytics.statusCounts.find((item) => item.label === "open")?.value || 0;
-  const progressCount =
-    analytics.statusCounts.find((item) => item.label === "in progress")?.value || 0;
-  const resolvedCount =
-    analytics.statusCounts.find((item) => item.label === "resolved")?.value || 0;
-  const topCategory = analytics.categoryCounts[0];
-
-  if (text.includes("open")) {
-    return `There are currently ${openCount} open issues across the city.`;
-  }
-
-  if (text.includes("resolved")) {
-    return `There are ${resolvedCount} resolved issues in the system right now.`;
-  }
-
-  if (text.includes("progress")) {
-    return `${progressCount} issues are actively being worked on at the moment.`;
-  }
-
-  if (text.includes("map") || text.includes("where")) {
-    return `I mapped ${analytics.hotspots.length} reported issue locations below so you can spot clusters quickly.`;
-  }
-
-  if (text.includes("chart") || text.includes("trend") || text.includes("summary")) {
-    return `Here is the current system summary: ${openCount} open, ${progressCount} in progress, and ${resolvedCount} resolved. ${
-      topCategory
-        ? `${topCategory.label} is the busiest category with ${topCategory.value} reports.`
-        : ""
-    }`.trim();
-  }
-
-  return `I analyzed ${analytics.totalIssues} issues and prepared charts plus a live issue map below. Ask about open tickets, resolved work, trends, categories, or location hotspots for a more focused answer.`;
-};
-
-const buildGeminiPrompt = (message, analytics) => {
-  const serializedAnalytics = JSON.stringify(analytics, null, 2);
-
-  return `
-You are CivicCase AI, an agentic municipal issue analysis assistant.
-First assess the most urgent categories, recent trends, and geographic hotspots.
-Then answer concisely using only the analytics data provided below.
-Mention charts or the map when they support the answer.
-Do not invent facts, locations, or counts.
-Keep the reply to 3 short paragraphs or fewer.
-
-User question:
-${message}
-
-Analytics:
-${serializedAnalytics}
-`.trim();
-};
-
-const getGeminiReply = async (message, analytics) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return getFallbackReply(message, analytics);
-  }
-
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: buildGeminiPrompt(message, analytics) }]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 350
-      }
-    })
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini request failed with status ${response.status}: ${errorText}`);
-  }
-
-  const data = await response.json();
-  const text =
-    data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text)
-      .filter(Boolean)
-      .join("\n")
-      .trim() || "";
-
-  return text || getFallbackReply(message, analytics);
-};
-
-export const getChatbotReply = async (message) => {
-  const issues = await Issue.find().sort({ createdAt: 1 });
-  const analytics = buildAnalytics(issues);
-  const analyticsSnapshot = JSON.stringify(analytics);
-  const cacheKey = getCacheKey(message, analyticsSnapshot);
-
-  const cachedReply = getCachedReply(cacheKey);
-  if (cachedReply) {
-    return { reply: cachedReply, analytics, aiEnabled: Boolean(process.env.GEMINI_API_KEY) };
-  }
-
-  try {
-    const reply = await getGeminiReply(message, analytics);
-    setCachedReply(cacheKey, reply);
-    return { reply, analytics, aiEnabled: Boolean(process.env.GEMINI_API_KEY) };
-  } catch (error) {
-    const errorMessage = error.message || "";
-    const isInvalidKey = errorMessage.includes("API_KEY_INVALID");
-    const isQuotaExceeded = errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED");
-    let aiStatusMessage;
-
-    if (isInvalidKey) {
-      aiStatusMessage = "Gemini API key is invalid, so this answer is using local issue analytics instead.";
-    } else if (isQuotaExceeded) {
-      aiStatusMessage = "Gemini API quota exceeded, so this answer is using local issue analytics instead. Please upgrade to a paid plan or try again later.";
-    } else {
-      aiStatusMessage = "Gemini is unavailable right now, so this answer is using local issue analytics instead.";
-    }
-
-    console.error("Gemini chatbot error:", errorMessage);
-
-    return {
-      reply: `${getFallbackReply(message, analytics)} ${aiStatusMessage}`,
-      analytics,
-      aiEnabled: false
-    };
-  }
 };

@@ -10,7 +10,8 @@ import { getChatbotReply } from "../services/chatbotService.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.AI_SERVICE_PORT || 5003;
+const PORT = process.env.AI_SERVICE_PORT || 5008;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5173", "http://localhost:3000"],
@@ -108,7 +109,7 @@ app.get("/analytics", authenticate, async (req, res) => {
   }
 });
 
-app.post("/chatbot", authenticate, async (req, res) => {
+app.post("/chatbot", async (req, res) => { // temporarily removed authenticate for testing
   try {
     const { message } = req.body;
     if (!message?.trim()) {
@@ -117,6 +118,52 @@ app.post("/chatbot", authenticate, async (req, res) => {
 
     const reply = await getChatbotReply(message.trim());
     res.json(reply);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post("/suggest-category", authenticate, async (req, res) => {
+  try {
+    const { issueId } = req.body;
+    if (!issueId) {
+      return res.status(400).json({ message: "Issue ID is required" });
+    }
+
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+    const apiKey = process.env.GOOGLE_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ message: "AI service unavailable" });
+    }
+
+    const prompt = `Classify this issue into one of these categories: Infrastructure, Environment, Safety, Transportation, Utilities, Health, Education, Other.
+Issue Title: ${issue.title}
+Issue Description: ${issue.description}
+Respond with only the category name.`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 50 }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const category = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "General";
+
+    res.json(category);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

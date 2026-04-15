@@ -4,7 +4,7 @@ import { setTokenCookie } from "../utils/setTokenCookie.js";
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:5001";
 const ISSUE_SERVICE_URL = process.env.ISSUE_SERVICE_URL || "http://localhost:5002";
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:5003";
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:5008";
 
 const getTokenFromRequest = (req) => {
   if (req.cookies?.token) {
@@ -147,6 +147,14 @@ const resolvers = {
       return await fetchJson(`${ISSUE_SERVICE_URL}/notifications/${notificationId}/read`, {
         method: "POST",
         headers: getAuthHeaders(context.req)
+      });
+    },
+
+    suggestCategoryForIssue: async (_, { issueId }, context) => {
+      return await fetchJson(`${AI_SERVICE_URL}/suggest-category`, {
+        method: "POST",
+        headers: getAuthHeaders(context.req),
+        body: JSON.stringify({ issueId })
       });
     },
 
