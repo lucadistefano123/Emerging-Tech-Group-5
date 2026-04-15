@@ -1,0 +1,287 @@
+/* Chatbot Page Styles with WCAG AA Contrast Compliance */
+
+/* Left Panel Container */
+.left-panel-container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.left-panel-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Left Panel Badge - Improved Contrast */
+.civiccase-badge {
+  background: rgba(243, 201, 105, 0.25) !important;
+  border: 1px solid rgba(243, 201, 105, 0.5) !important;
+  color: #fff8e1 !important;
+  letter-spacing: 0.08em;
+}
+
+/* Left Panel Heading Text Color - Improved for Dark Background */
+.civiccase-heading {
+  color: #fdfaf2;
+  font-family: Georgia, 'Times New Roman', serif;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.22);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+/* Left Panel Main Text - Improved Contrast */
+.civiccase-panel-text {
+  color: #fff5e6;
+  line-height: 1.75;
+}
+
+/* Glass Button Style - Improved Contrast */
+.civiccase-glass-button {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  color: #fff8e1;
+  box-shadow: 0 14px 30px rgba(3, 12, 22, 0.16);
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  transition: all 0.3s ease;
+}
+
+.civiccase-glass-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.civiccase-glass-button .prompt-label {
+  color: #ffe39d;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.08em;
+}
+
+.civiccase-glass-button .prompt-text {
+  line-height: 1.55;
+  color: #f8f3e8;
+}
+
+/* Info Card Styling - Improved Text Contrast */
+.civiccase-info-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  color: white;
+  border-radius: 1rem;
+}
+
+.civiccase-info-card .info-label {
+  color: #fff1c0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
+}
+
+.civiccase-info-card .info-text {
+  color: #f5f1e8;
+  line-height: 1.65;
+  font-size: 0.875rem;
+}
+
+/* Chat History Container */
+.chat-history-container {
+  min-height: 320px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(236, 243, 246, 0.95) 0%, rgba(248, 245, 239, 0.92) 100%);
+  border: 1px solid rgba(23, 50, 77, 0.08);
+  border-radius: 1.5rem;
+  padding: 1rem;
+}
+
+@media (max-width: 991px) {
+  .chat-history-container {
+    padding: 1rem;
+  }
+}
+
+/* Chat Bubble - User */
+.chat-bubble-user {
+  background: linear-gradient(135deg, #1a3a52 0%, #254c6e 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 14px 30px rgba(23, 50, 77, 0.25);
+}
+
+.chat-bubble-user-name {
+  color: #b3c8d8;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: right;
+}
+
+/* Chat Bubble - Bot */
+.chat-bubble-bot {
+  background: linear-gradient(180deg, #fffefb 0%, #f6efe1 100%);
+  color: #1a2d3d;
+  border: 1px solid #ebdfc5;
+  box-shadow: 0 12px 24px rgba(147, 121, 46, 0.12);
+}
+
+.chat-bubble-bot-name {
+  color: #8b6f1f;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-align: left;
+}
+
+/* Main Content Labels - Improved Contrast */
+.content-label {
+  color: #5a4a1a;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.content-heading {
+  color: #102536;
+  font-weight: bold;
+}
+
+.content-subtext {
+  color: #2c3e50;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Form Input */
+.chatbot-input {
+  border-radius: 1.25rem;
+  border: 1px solid #7a8c99;
+  padding: 0.9rem 1.1rem;
+  color: #102536;
+  background: #fffefb;
+  font-size: 1rem;
+}
+
+.chatbot-input::placeholder {
+  color: #7a8c99;
+}
+
+.chatbot-input:focus {
+  border-color: #17324d;
+  box-shadow: 0 0 0 3px rgba(23, 50, 77, 0.1);
+}
+
+/* Submit Button */
+.chatbot-submit-btn {
+  background: linear-gradient(135deg, #1a3a52 0%, #254c6e 100%);
+  border: none;
+  font-weight: 600;
+  color: #ffffff;
+  min-width: 210px;
+  border-radius: 1rem;
+  padding: 0.9rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.chatbot-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #213d56 0%, #2d5577 100%);
+  box-shadow: 0 8px 20px rgba(23, 50, 77, 0.25);
+}
+
+.chatbot-submit-btn:disabled {
+  opacity: 0.7;
+}
+
+/* Metric Card Labels */
+.metric-label {
+  background: rgba(0, 0, 0, 0.05);
+  color: #17324d;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(23, 50, 77, 0.15);
+}
+
+/* Chart Cards */
+.chart-title {
+  color: #102536;
+  font-weight: bold;
+  font-size: 1.125rem;
+}
+
+.chart-subtitle {
+  color: #486173;
+  font-size: 0.875rem;
+}
+
+.chart-label {
+  color: #183048;
+  font-weight: 600;
+}
+
+.chart-value {
+  color: #4a6578;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Status Colors with proper contrast */
+.status-open {
+  color: #db5c44;
+}
+
+.status-in-progress {
+  color: #f0b84a;
+}
+
+.status-resolved {
+  color: #2c9c6a;
+}
+
+/* Badge Styling */
+.civiccase-badge-info {
+  background: #f5f0e8;
+  color: #102536;
+  border: 1px solid #d9d0c2;
+  font-weight: 600;
+}
+
+.civiccase-badge-success {
+  background: rgba(44, 156, 106, 0.15);
+  color: #1f7a50;
+  border: 1px solid rgba(44, 156, 106, 0.3);
+  font-weight: 600;
+}
+
+.civiccase-badge-secondary {
+  background: rgba(72, 107, 115, 0.15);
+  color: #2d4a55;
+  border: 1px solid rgba(72, 107, 115, 0.3);
+  font-weight: 600;
+}
+
+/* On small screens */
+@media (max-width: 768px) {
+  .civiccase-heading {
+    font-size: 2rem;
+  }
+
+  .civiccase-panel-text {
+    font-size: 0.9rem;
+  }
+
+  .chatbot-submit-btn {
+    min-width: 100%;
+  }
+}

@@ -15,6 +15,7 @@ import { useMutation } from "@apollo/client/react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "./ChatBotPage.css";
 
 const CHATBOT = gql`
   mutation Chatbot($message: String!) {
@@ -88,7 +89,10 @@ const leftPanelStyle = {
   minWidth: 0,
   background:
     "linear-gradient(180deg, rgba(15,35,52,0.98) 0%, rgba(19,47,70,0.95) 58%, rgba(28,52,73,0.92) 100%)",
-  borderRight: "1px solid rgba(255,255,255,0.08)"
+  borderRight: "1px solid rgba(255,255,255,0.08)",
+  minHeight: "100%",
+  display: "flex",
+  flexDirection: "column"
 };
 
 function SummaryMetric({ label, value, accent }) {
@@ -96,7 +100,7 @@ function SummaryMetric({ label, value, accent }) {
     <Card className="border-0 shadow-sm h-100 rounded-4" style={panelStyle}>
       <Card.Body>
         <div
-          className="d-inline-flex align-items-center rounded-pill px-2 py-1 mb-3 small fw-semibold"
+          className="d-inline-flex align-items-center rounded-pill px-2 py-1 mb-3 small fw-semibold metric-label"
           style={{ background: `${accent}20`, color: accent, border: `1px solid ${accent}33` }}
         >
           {label}
@@ -116,18 +120,18 @@ function BarChartCard({ title, subtitle, data, color }) {
     <Card className="border-0 shadow-sm h-100 rounded-4" style={panelStyle}>
       <Card.Body className="p-4">
         <div className="mb-4">
-          <h5 className="fw-bold mb-1" style={{ color: "#102536" }}>{title}</h5>
-          <p className="small text-secondary mb-0">{subtitle}</p>
+          <h5 className="chart-title mb-1">{title}</h5>
+          <p className="chart-subtitle mb-0">{subtitle}</p>
         </div>
 
         <div className="d-flex flex-column gap-3">
           {data.map((item) => (
             <div key={item.label}>
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="fw-semibold text-capitalize" style={{ color: "#183048" }}>
+                <span className="chart-label text-capitalize">
                   {item.label}
                 </span>
-                <span className="small fw-semibold" style={{ color: "#355063" }}>
+                <span className="chart-value">
                   {item.value}
                 </span>
               </div>
@@ -178,8 +182,8 @@ function TrendChartCard({ data }) {
     <Card className="border-0 shadow-sm h-100 rounded-4" style={panelStyle}>
       <Card.Body className="p-4">
         <div className="mb-3">
-          <h5 className="fw-bold mb-1" style={{ color: "#102536" }}>Issue Velocity</h5>
-          <p className="small text-secondary mb-0">
+          <h5 className="chart-title mb-1">Issue Velocity</h5>
+          <p className="chart-subtitle mb-0">
             Report creation over the most recent tracked days.
           </p>
         </div>
@@ -209,7 +213,7 @@ function TrendChartCard({ data }) {
           {points.map((point) => (
             <g key={point.label}>
               <circle cx={point.x} cy={point.y} r="6" fill="#f3c969" stroke="#17324d" strokeWidth="3" />
-              <text x={point.x} y="212" textAnchor="middle" fontSize="11" fill="#597184">
+              <text x={point.x} y="212" textAnchor="middle" fontSize="11" fill="#4a6578">
                 {point.label.slice(5)}
               </text>
             </g>
@@ -226,23 +230,12 @@ function ChatBubble({ role, text }) {
   return (
     <div className={`d-flex mb-3 ${isUser ? "justify-content-end" : "justify-content-start"}`}>
       <div style={{ maxWidth: "88%" }}>
-        <div
-          className="small fw-semibold mb-1 px-1"
-          style={{ color: isUser ? "#486173" : "#7d5f10", textAlign: isUser ? "right" : "left" }}
-        >
+        <div className={isUser ? "chat-bubble-user-name" : "chat-bubble-bot-name"}>
           {isUser ? "You" : "CivicCase AI"}
         </div>
         <div
-          className="rounded-4 px-3 py-3"
+          className={`rounded-4 px-3 py-3 ${isUser ? "chat-bubble-user" : "chat-bubble-bot"}`}
           style={{
-            background: isUser
-              ? "linear-gradient(135deg, #17324d 0%, #214765 100%)"
-              : "linear-gradient(180deg, #fffefb 0%, #f6efe1 100%)",
-            color: isUser ? "#fff" : "#1a2d3d",
-            border: isUser ? "none" : "1px solid #ebdfc5",
-            boxShadow: isUser
-              ? "0 14px 30px rgba(23,50,77,0.18)"
-              : "0 12px 24px rgba(147,121,46,0.08)",
             whiteSpace: "pre-wrap"
           }}
         >
@@ -309,7 +302,7 @@ export default function ChatBotPage() {
           <Col
             xl={4}
             xxl={3}
-            className="p-4 p-lg-5 text-start text-white position-relative"
+            className="p-4 p-lg-5 text-start text-white position-relative left-panel-container"
             style={leftPanelStyle}
           >
             <div
@@ -323,38 +316,27 @@ export default function ChatBotPage() {
               }}
             />
 
-            <div className="position-relative">
+            <div className="left-panel-content">
               <Badge
-                className="px-3 py-2 rounded-pill text-uppercase fw-semibold mb-3"
-                style={{
-                  background: "rgba(243, 201, 105, 0.18)",
-                  border: "1px solid rgba(243, 201, 105, 0.35)",
-                  color: "#fff3ca",
-                  letterSpacing: "0.08em"
-                }}
+                className="civiccase-badge px-3 py-2 rounded-pill text-uppercase fw-semibold mb-3"
               >
                 CivicCase Intelligence
               </Badge>
 
               <h1
-                className="fw-bold mb-3"
+                className="fw-bold mb-3 civiccase-heading"
                 style={{
                   fontSize: "clamp(2.4rem, 4.1vw, 4.25rem)",
-                  lineHeight: 0.96,
-                  letterSpacing: "-0.04em",
-                  color: "#fdfaf2",
-                  fontFamily: "Georgia, 'Times New Roman', serif",
                   maxWidth: "10ch",
-                  textWrap: "balance",
-                  textShadow: "0 3px 14px rgba(0,0,0,0.22)"
+                  textWrap: "balance"
                 }}
               >
                 A chatbot page that actually looks like part of the product.
               </h1>
 
               <p
-                className="mb-4"
-                style={{ color: "rgba(255, 249, 235, 0.92)", lineHeight: 1.75, maxWidth: "28rem" }}
+                className="mb-4 civiccase-panel-text"
+                style={{ maxWidth: "28rem" }}
               >
                 Ask for trends, hotspots, or category breakdowns and the workspace updates the conversation,
                 analytics, and live map together.
@@ -365,36 +347,28 @@ export default function ChatBotPage() {
                   <button
                     key={prompt}
                     type="button"
-                    className="text-start rounded-4 px-3 py-3"
-                    style={{
-                      ...glassStyle,
-                      color: "#fffdf7",
-                      boxShadow: "0 14px 30px rgba(3, 12, 22, 0.16)"
-                    }}
+                    className="civiccase-glass-button"
                     onClick={() => setMessage(prompt)}
                   >
-                    <div className="small text-uppercase fw-semibold mb-1" style={{ color: "#ffe39d" }}>
+                    <div className="prompt-label">
                       Suggested prompt
                     </div>
-                    <div style={{ lineHeight: 1.55, color: "#f8f3e8" }}>{prompt}</div>
+                    <div className="prompt-text">{prompt}</div>
                   </button>
                 ))}
               </div>
 
-              <Card className="border-0 rounded-4 text-white" style={{ ...glassStyle, maxWidth: "24rem" }}>
+              <Card className="border-0 rounded-4 civiccase-info-card">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span
-                      className="small text-uppercase fw-semibold"
-                      style={{ letterSpacing: "0.12em", color: "#fff1c0" }}
-                    >
+                    <span className="info-label">
                       AI Engine
                     </span>
-                    <Badge bg={latestResult?.aiEnabled ? "success" : "secondary"}>
+                    <Badge bg={latestResult?.aiEnabled ? "success" : "secondary"} className={latestResult?.aiEnabled ? "civiccase-badge-success" : "civiccase-badge-secondary"}>
                       {latestResult?.aiEnabled ? "Gemini live" : "Analytics fallback"}
                     </Badge>
                   </div>
-                  <p className="small mb-0" style={{ color: "rgba(255,255,255,0.90)", lineHeight: 1.65 }}>
+                  <p className="small mb-0 info-text">
                     Gemini replies are used when the server key is valid. Otherwise the page still delivers live
                     issue analytics from your own data.
                   </p>
@@ -410,45 +384,35 @@ export default function ChatBotPage() {
               <Card.Body className="p-3 p-lg-4">
                 <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
                   <div className="text-start">
-                    <div className="small text-uppercase fw-semibold mb-1" style={{ color: "#735710", letterSpacing: "0.08em" }}>
+                    <div className="content-label">
                       Conversation Studio
                     </div>
-                    <h3 className="fw-bold mb-1" style={{ color: "#102536" }}>Ask. Analyze. Act.</h3>
-                    <p className="mb-0" style={{ color: "#455b6d" }}>
+                    <h3 className="content-heading mb-1">Ask. Analyze. Act.</h3>
+                    <p className="content-subtext mb-0">
                       Keep the conversation on one side and the evidence on the other.
                     </p>
                   </div>
 
                   <div className="d-flex flex-wrap gap-2">
-                    <Badge bg="light" text="dark" className="rounded-pill px-3 py-2 border" style={{ color: "#23384a" }}>
+                    <Badge bg="light" text="dark" className="civiccase-badge-info rounded-pill px-3 py-2">
                       {chatHistory.length / 2 || 0} prompts run
                     </Badge>
-                    <Badge bg="light" text="dark" className="rounded-pill px-3 py-2 border" style={{ color: "#23384a" }}>
+                    <Badge bg="light" text="dark" className="civiccase-badge-info rounded-pill px-3 py-2">
                       {analytics?.hotspots?.length || 0} mapped points
                     </Badge>
                   </div>
                 </div>
 
-                <div
-                  className="rounded-5 p-3 p-lg-4 mb-4"
-                  style={{
-                    minHeight: "320px",
-                    maxHeight: "420px",
-                    overflowY: "auto",
-                    background:
-                      "linear-gradient(180deg, rgba(236,243,246,0.95) 0%, rgba(248,245,239,0.92) 100%)",
-                    border: "1px solid rgba(23,50,77,0.08)"
-                  }}
-                >
+                <div className="chat-history-container mb-4">
                   {chatHistory.length === 0 ? (
                     <div className="h-100 d-flex flex-column justify-content-center text-start">
-                      <div className="small text-uppercase fw-semibold mb-2" style={{ color: "#735710", letterSpacing: "0.08em" }}>
+                      <div className="content-label mb-2">
                         Ready for first analysis
                       </div>
-                      <h4 className="fw-bold mb-2" style={{ color: "#102536" }}>
+                      <h4 className="content-heading mb-2">
                         Ask about issue trends, category pressure, or location clusters.
                       </h4>
-                      <p className="mb-0" style={{ maxWidth: "38rem", color: "#486173" }}>
+                      <p className="content-subtext mb-0" style={{ maxWidth: "38rem" }}>
                         The reply will appear here and the dashboard below will update with counts, charts, and a live map.
                       </p>
                     </div>
@@ -467,23 +431,12 @@ export default function ChatBotPage() {
                       placeholder="Ask about hotspots, issue volume, resolution pace, or category load..."
                       value={message}
                       onChange={(event) => setMessage(event.target.value)}
-                      style={{
-                        borderRadius: "1.25rem",
-                        border: "1px solid #b8c8d4",
-                        padding: "0.95rem 1.1rem",
-                        color: "#102536",
-                        background: "#fffefb"
-                      }}
+                      className="chatbot-input"
                     />
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="px-4 rounded-4 fw-semibold"
-                      style={{
-                        background: "linear-gradient(135deg, #17324d 0%, #254c6e 100%)",
-                        border: "none",
-                        minWidth: "210px"
-                      }}
+                      className="chatbot-submit-btn"
                     >
                       {loading ? (
                         <>
@@ -542,12 +495,12 @@ export default function ChatBotPage() {
                   <Card.Body className="p-4 pb-2">
                     <div className="d-flex justify-content-between align-items-start mb-1">
                       <div>
-                        <h5 className="fw-bold mb-1" style={{ color: "#102536" }}>Issue Hotspot Map</h5>
-                        <p className="small text-secondary mb-0">
+                        <h5 className="chart-title mb-1">Issue Hotspot Map</h5>
+                        <p className="chart-subtitle mb-0">
                           Live coordinates for each issue with valid location data.
                         </p>
                       </div>
-                      <Badge bg="light" text="dark" className="border rounded-pill px-3 py-2">
+                      <Badge bg="light" text="dark" className="civiccase-badge-info border rounded-pill px-3 py-2">
                         {analytics?.hotspots?.length || 0} pins
                       </Badge>
                     </div>
