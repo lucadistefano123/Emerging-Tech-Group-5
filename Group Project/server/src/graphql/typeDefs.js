@@ -53,6 +53,7 @@ const typeDefs = gql`
     hotspots: [MapPoint!]!
   }
 
+  
   type ChatbotResponse {
     reply: String!
     aiEnabled: Boolean!
@@ -80,6 +81,12 @@ const typeDefs = gql`
     hotspots: [MapPoint!]!
   }
 
+  
+  type CategorySuggestion {
+    category: String!
+    confidence: String!
+  }
+
   type Query {
     hello: String
     me: User
@@ -92,7 +99,12 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    register(fullName: String!, email: String!, password: String!, role: String): AuthPayload
+    register(
+      fullName: String!
+      email: String!
+      password: String!
+      role: String
+    ): AuthPayload
     login(email: String!, password: String!): AuthPayload
     logout: String
 
@@ -105,15 +117,17 @@ const typeDefs = gql`
       longitude: Float!
     ): Issue!
 
-    updateIssueStatus(
-      issueId: ID!
-      status: String!
-      assignedTo: ID
-    ): Issue!
+    updateIssueStatus(issueId: ID!, status: String!, assignedTo: ID): Issue!
 
     markNotificationAsRead(notificationId: ID!): Notification!
 
     chatbot(message: String!): ChatbotResponse!
+
+    
+    suggestCategoryForIssue(
+      title: String!
+      description: String!
+    ): CategorySuggestion!
   }
 `;
 
