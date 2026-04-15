@@ -9,6 +9,26 @@ import Issue from "../models/Issue.js";
 import Notification from "../models/Notification.js";
 import { validateIssueInput } from "../utils/validateIssueInput.js";
 
+const ISSUE_CATEGORY_KEYWORDS = [
+  { category: "Roadway", keywords: ["pothole", "road", "street", "highway", "traffic", "sign", "lane", "crosswalk", "bridge"] },
+  { category: "Lighting", keywords: ["light", "streetlight", "lamp", "dark", "illumination"] },
+  { category: "Water", keywords: ["water", "sewer", "drain", "flood", "pipe", "leak"] },
+  { category: "Sanitation", keywords: ["trash", "garbage", "litter", "dumping", "bin", "clean"] },
+  { category: "Public Safety", keywords: ["noise", "crime", "vandalism", "graffiti", "danger", "unsafe"] },
+  { category: "Transit", keywords: ["bus", "train", "station", "transit", "stop", "route"] },
+  { category: "Parks", keywords: ["park", "tree", "green", "playground", "garden", "landscap"] }
+];
+
+const autoCategorizeIssue = ({ title, description }) => {
+  const text = `${title || ""} ${description || ""}`.toLowerCase();
+  for (const bucket of ISSUE_CATEGORY_KEYWORDS) {
+    if (bucket.keywords.some((keyword) => text.includes(keyword))) {
+      return bucket.category;
+    }
+  }
+  return "General";
+};
+
 dotenv.config();
 
 const app = express();
@@ -81,11 +101,16 @@ app.post("/issues", authenticate, async (req, res) => {
   try {
     validateIssueInput(req.body);
 
+    const providedCategory = req.body.category?.trim();
+    const category = providedCategory && providedCategory !== "General"
+      ? providedCategory
+      : autoCategorizeIssue(req.body);
+
     const issue = await Issue.create({
       ...req.body,
       title: req.body.title.trim(),
       description: req.body.description.trim(),
-      category: req.body.category?.trim() || "General",
+      category,
       imageUrl: req.body.imageUrl?.trim() || "",
       reportedBy: req.user.id
     });

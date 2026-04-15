@@ -1,22 +1,8 @@
 import { useState } from "react";
 import { Container, Card, Form, Button, Alert } from "react-bootstrap";
-import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { useNavigate, Link } from "react-router-dom";
-
-const LOGIN = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      message
-      user {
-        id
-        fullName
-        email
-        role
-      }
-    }
-  }
-`;
+import { GET_ME, LOGIN } from "../graphql/queries";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -29,6 +15,8 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const [login, { loading }] = useMutation(LOGIN, {
+    refetchQueries: [{ query: GET_ME }],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       navigate("/");
     },

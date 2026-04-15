@@ -45,12 +45,19 @@ const typeDefs = gql`
     longitude: Float!
   }
 
+  type TrendCluster {
+    label: String!
+    count: Int!
+    exampleIssue: String
+  }
+
   type ChatbotAnalytics {
     totalIssues: Int!
     statusCounts: [ChartDatum!]!
     categoryCounts: [ChartDatum!]!
     dailyTrend: [ChartDatum!]!
     hotspots: [MapPoint!]!
+    trendClusters: [TrendCluster!]!
   }
 
   type ChatbotResponse {
@@ -78,6 +85,7 @@ const typeDefs = gql`
     categoryCounts: [ChartDatum!]!
     dailyTrend: [ChartDatum!]!
     hotspots: [MapPoint!]!
+    trendClusters: [TrendCluster!]!
   }
 
   type Query {

@@ -55,6 +55,15 @@ const buildAnalytics = (issues) => {
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
 
+  const trendClusters = Array.from(categoryMap.entries())
+    .map(([label, value]) => ({
+      label,
+      count: value,
+      exampleIssue: issues.find((issue) => (issue.category?.trim() || "General") === label)?.title || "Example report"
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
   const trendMap = new Map();
   issues.forEach((issue) => {
     const date = new Date(issue.createdAt).toISOString().slice(0, 10);
@@ -85,7 +94,8 @@ const buildAnalytics = (issues) => {
     statusCounts,
     categoryCounts,
     dailyTrend,
-    hotspots
+    hotspots,
+    trendClusters
   };
 };
 

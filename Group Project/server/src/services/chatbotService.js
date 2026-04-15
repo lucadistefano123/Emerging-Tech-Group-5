@@ -53,6 +53,15 @@ const buildAnalytics = (issues) => {
     .sort((left, right) => right.value - left.value)
     .slice(0, 6);
 
+  const trendClusters = [...categoryMap.entries()]
+    .map(([label, value]) => ({
+      label,
+      count: value,
+      exampleIssue: issues.find((issue) => normalizeCategory(issue.category) === label)?.title || "Example report"
+    }))
+    .sort((left, right) => right.count - left.count)
+    .slice(0, 5);
+
   const trendMap = issues.reduce((accumulator, issue) => {
     const key = getDateKey(issue.createdAt);
     accumulator.set(key, (accumulator.get(key) || 0) + 1);
@@ -84,7 +93,8 @@ const buildAnalytics = (issues) => {
     statusCounts,
     categoryCounts,
     dailyTrend,
-    hotspots
+    hotspots,
+    trendClusters
   };
 };
 
@@ -129,8 +139,9 @@ const buildGeminiPrompt = (message, analytics) => {
   const serializedAnalytics = JSON.stringify(analytics, null, 2);
 
   return `
-You are CivicCase AI, a concise municipal issue analysis assistant.
-Use only the analytics data provided below.
+You are CivicCase AI, an agentic municipal issue analysis assistant.
+First assess the most urgent categories, recent trends, and geographic hotspots.
+Then answer concisely using only the analytics data provided below.
 Mention charts or the map when they support the answer.
 Do not invent facts, locations, or counts.
 Keep the reply to 3 short paragraphs or fewer.

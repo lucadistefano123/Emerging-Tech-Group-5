@@ -1,22 +1,8 @@
 import { useState } from "react";
 import { Container, Card, Form, Button, Alert } from "react-bootstrap";
-import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { useNavigate } from "react-router-dom";
-
-const REGISTER = gql`
-  mutation Register($fullName: String!, $email: String!, $password: String!) {
-    register(fullName: $fullName, email: $email, password: $password) {
-      message
-      user {
-        id
-        fullName
-        email
-        role
-      }
-    }
-  }
-`;
+import { GET_ME, REGISTER } from "../graphql/queries";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -30,6 +16,8 @@ export default function RegisterPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const [register, { loading }] = useMutation(REGISTER, {
+    refetchQueries: [{ query: GET_ME }],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       navigate("/");
     },
