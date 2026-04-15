@@ -4,10 +4,8 @@ const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 const STATUS_ORDER = ["open", "in_progress", "resolved"];
-
-// Simple in-memory cache with 1 hour TTL to reduce API quota usage
 const responseCache = new Map();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+const CACHE_TTL = 60 * 60 * 1000;
 
 const getCacheKey = (message, analyticsSnapshot) => {
   return `${message.toLowerCase()}:${analyticsSnapshot}`;
@@ -193,7 +191,6 @@ export const getChatbotReply = async (message) => {
   const analyticsSnapshot = JSON.stringify(analytics);
   const cacheKey = getCacheKey(message, analyticsSnapshot);
 
-  // Check cache first to reduce API quota usage
   const cachedReply = getCachedReply(cacheKey);
   if (cachedReply) {
     return { reply: cachedReply, analytics, aiEnabled: Boolean(process.env.GEMINI_API_KEY) };

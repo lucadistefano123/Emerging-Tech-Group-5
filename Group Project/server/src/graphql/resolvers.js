@@ -1,56 +1,87 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
-import Issue from "../models/Issue.js";
-import { requireAuth } from "../middleware/authMiddleware.js";
-import { requireRole } from "../middleware/roleMiddleware.js";
 import { validateIssueInput } from "../utils/validateIssueInput.js";
 import { validateRegisterInput, validateLoginInput } from "../utils/validateAuthInput.js";
 import { setTokenCookie } from "../utils/setTokenCookie.js";
-import { getChatbotReply } from "../services/chatbotService.js";
 
-const createToken = (user) => {
-  return jwt.sign(
-    {
-      id: user._id,
-      email: user.email,
-      role: user.role
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://localhost:5001";
+const ISSUE_SERVICE_URL = process.env.ISSUE_SERVICE_URL || "http://localhost:5002";
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:5003";
+
+const getTokenFromRequest = (req) => {
+  if (req.cookies?.token) {
+    return req.cookies.token;
+  }
+  if (req.headers.authorization) {
+    return req.headers.authorization.split(" ")[1];
+  }
+  return null;
+};
+
+const fetchJson = async (url, options = {}) => {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(url, { ...options, headers });
+  const contentType = response.headers.get("content-type") || "";
+  const body = contentType.includes("application/json") ? await response.json() : null;
+
+  if (!response.ok) {
+    const message = body?.message || body?.error || `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return body;
+};
+
+const getAuthHeaders = (req) => {
+  const token = getTokenFromRequest(req);
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 const resolvers = {
   Query: {
-    hello: () => "Server is running 🚀",
+    hello: () => "Server is running",
 
     me: async (_, __, context) => {
-      const authUser = requireAuth(context.req);
-
-      const user = await User.findById(authUser.id);
-
-      if (!user) {
-        throw new Error("User not found");
-      }
-
-      return user;
+      const result = await fetchJson(`${AUTH_SERVICE_URL}/me`, {
+        headers: getAuthHeaders(context.req)
+      });
+      return result.user;
     },
 
-    issues: async () => {
-      return await Issue.find()
-        .populate("reportedBy")
-        .populate("assignedTo")
-        .sort({ createdAt: -1 });
+    issues: async (_, __, context) => {
+      return await fetchJson(`${ISSUE_SERVICE_URL}/issues`, {
+        headers: getAuthHeaders(context.req)
+      });
     },
 
     myIssues: async (_, __, context) => {
-      const user = requireAuth(context.req);
+      return await fetchJson(`${ISSUE_SERVICE_URL}/issues/my`, {
+        headers: getAuthHeaders(context.req)
+      });
+    },
 
-      return await Issue.find({ reportedBy: user.id })
-        .populate("reportedBy")
-        .populate("assignedTo")
-        .sort({ createdAt: -1 });
+    staffUsers: async () => {
+      return await fetchJson(`${ISSUE_SERVICE_URL}/users/staff`);
+    },
+
+    analytics: async (_, __, context) => {
+      return await fetchJson(`${AI_SERVICE_URL}/analytics`, {
+        headers: getAuthHeaders(context.req)
+      });
+    },
+
+    notifications: async (_, __, context) => {
+      return await fetchJson(`${ISSUE_SERVICE_URL}/notifications`, {
+        headers: getAuthHeaders(context.req)
+      });
+    },
+
+    unreadNotifications: async (_, __, context) => {
+      return await fetchJson(`${ISSUE_SERVICE_URL}/notifications/unread`, {
+        headers: getAuthHeaders(context.req)
+      });
     }
   },
 
@@ -58,123 +89,77 @@ const resolvers = {
     register: async (_, { fullName, email, password, role }, context) => {
       validateRegisterInput({ fullName, email, password });
 
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
-
-      if (existingUser) {
-        throw new Error("User already exists with this email");
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const user = await User.create({
-        fullName: fullName.trim(),
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        role: role || "resident"
+      const result = await fetchJson(`${AUTH_SERVICE_URL}/register`, {
+        method: "POST",
+        body: JSON.stringify({ fullName, email, password, role })
       });
 
-      const token = createToken(user);
-
-      setTokenCookie(context.res, token);
+      setTokenCookie(context.res, result.token);
 
       return {
-        message: "Registration successful",
-        user,
-        token
+        message: result.message,
+        user: result.user,
+        token: result.token
       };
     },
 
     login: async (_, { email, password }, context) => {
       validateLoginInput({ email, password });
 
-      const user = await User.findOne({ email: email.toLowerCase().trim() });
+      const result = await fetchJson(`${AUTH_SERVICE_URL}/login`, {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
 
-      if (!user) {
-        throw new Error("User not found");
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-
-      if (!isMatch) {
-        throw new Error("Invalid credentials");
-      }
-
-      const token = createToken(user);
-
-      setTokenCookie(context.res, token);
+      setTokenCookie(context.res, result.token);
 
       return {
-        message: "Login successful",
-        user,
-        token
+        message: result.message,
+        user: result.user,
+        token: result.token
       };
     },
 
     logout: async (_, __, context) => {
       context.res.clearCookie("token");
-
       return "Logged out successfully";
     },
 
     createIssue: async (_, args, context) => {
-      const user = requireAuth(context.req);
       validateIssueInput(args);
 
-      const issue = await Issue.create({
-        ...args,
-        title: args.title.trim(),
-        description: args.description.trim(),
-        category: args.category?.trim() || "General",
-        imageUrl: args.imageUrl?.trim() || "",
-        reportedBy: user.id
+      return await fetchJson(`${ISSUE_SERVICE_URL}/issues`, {
+        method: "POST",
+        headers: getAuthHeaders(context.req),
+        body: JSON.stringify(args)
       });
-
-      return await Issue.findById(issue._id)
-        .populate("reportedBy")
-        .populate("assignedTo");
     },
 
     updateIssueStatus: async (_, { issueId, status, assignedTo }, context) => {
-      const user = requireAuth(context.req);
-      requireRole(user, ["staff"]);
+      return await fetchJson(`${ISSUE_SERVICE_URL}/issues/${issueId}/status`, {
+        method: "PUT",
+        headers: getAuthHeaders(context.req),
+        body: JSON.stringify({ status, assignedTo })
+      });
+    },
 
-      const allowedStatuses = ["open", "in_progress", "resolved"];
-      if (!allowedStatuses.includes(status)) {
-        throw new Error("Invalid status value");
-      }
-
-      const issue = await Issue.findById(issueId);
-
-      if (!issue) {
-        throw new Error("Issue not found");
-      }
-
-      // Staff can only resolve issues that are open or in progress
-      if (status === "resolved" && !["open", "in_progress"].includes(issue.status)) {
-        throw new Error("Can only resolve issues that are open or in progress");
-      }
-
-      issue.status = status;
-
-      if (assignedTo) {
-        issue.assignedTo = assignedTo;
-      }
-
-      await issue.save();
-
-      return await Issue.findById(issue._id)
-        .populate("reportedBy")
-        .populate("assignedTo");
+    markNotificationAsRead: async (_, { notificationId }, context) => {
+      return await fetchJson(`${ISSUE_SERVICE_URL}/notifications/${notificationId}/read`, {
+        method: "POST",
+        headers: getAuthHeaders(context.req)
+      });
     },
 
     chatbot: async (_, { message }, context) => {
-      requireAuth(context.req);
-
       if (!message?.trim()) {
         throw new Error("Message is required");
       }
 
-      return await getChatbotReply(message.trim());
+      return await fetchJson(`${AI_SERVICE_URL}/chatbot`, {
+        method: "POST",
+        headers: getAuthHeaders(context.req),
+        body: JSON.stringify({ message })
+      });
     }
   }
 };

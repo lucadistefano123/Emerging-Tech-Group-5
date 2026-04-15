@@ -6,7 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "dev:auth": "nodemon src/microservices/authService.js",
+    "dev:issue": "nodemon src/microservices/issueService.js",
+    "dev:ai": "nodemon src/microservices/aiService.js",
+    "dev:gateway": "nodemon src/index.js",
+    "dev:all": "concurrently \"npm run dev:auth\" \"npm run dev:issue\" \"npm run dev:ai\" \"npm run dev:gateway\"",
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@apollo/server": "^4.11.3",
@@ -20,9 +26,12 @@
     "graphql-tag": "^2.12.6",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.15.1"
+    "mongoose": "^8.15.1",
+    "uuid": "^9.0.1",
+    "validator": "^13.12.0"
   },
   "devDependencies": {
+    "concurrently": "^8.2.0",
     "nodemon": "^3.1.10"
   }
 }

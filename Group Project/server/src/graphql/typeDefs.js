@@ -59,11 +59,36 @@ const typeDefs = gql`
     analytics: ChatbotAnalytics!
   }
 
+  type Notification {
+    id: ID!
+    userId: ID!
+    issueId: ID!
+    type: String!
+    message: String!
+    read: Boolean!
+    createdAt: String
+  }
+
+  type Analytics {
+    totalIssues: Int!
+    openIssues: Int!
+    inProgressIssues: Int!
+    resolvedIssues: Int!
+    statusCounts: [ChartDatum!]!
+    categoryCounts: [ChartDatum!]!
+    dailyTrend: [ChartDatum!]!
+    hotspots: [MapPoint!]!
+  }
+
   type Query {
     hello: String
     me: User
     issues: [Issue!]!
     myIssues: [Issue!]!
+    staffUsers: [User!]!
+    analytics: Analytics!
+    notifications: [Notification!]!
+    unreadNotifications: [Notification!]!
   }
 
   type Mutation {
@@ -85,6 +110,8 @@ const typeDefs = gql`
       status: String!
       assignedTo: ID
     ): Issue!
+
+    markNotificationAsRead(notificationId: ID!): Notification!
 
     chatbot(message: String!): ChatbotResponse!
   }
