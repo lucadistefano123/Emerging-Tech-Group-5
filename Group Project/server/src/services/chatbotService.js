@@ -224,6 +224,159 @@ Respond with ONLY the category name.`;
   }),
 });
 
+const summarizeTool = tool(async ({ issueId }) => {
+  try {
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return { summary: "Issue not found", issueId };
+    }
+
+    const llm = getModel();
+    if (!llm) {
+      return {
+        summary: issue.description.substring(0, 200) + (issue.description.length > 200 ? "..." : ""),
+        issueId: issueId,
+        title: issue.title,
+        aiGenerated: false
+      };
+    }
+
+    const prompt = `Summarize this municipal issue in 2-3 sentences, focusing on the key problem, location, and impact:
+
+Issue Title: ${issue.title}
+Issue Description: ${issue.description}
+Category: ${issue.category || "General"}
+Status: ${issue.status}
+
+Provide a concise summary that captures the essence of the issue.`;
+
+    const response = await llm.invoke([{
+      role: "user",
+      content: prompt
+    }]);
+
+    return {
+      summary: String(response.content ?? "").trim(),
+      issueId: issueId,
+      title: issue.title,
+      category: issue.category,
+      status: issue.status,
+      aiGenerated: true
+    };
+  } catch (error) {
+    console.error("Summarize tool error:", error);
+    return { summary: "Error generating summary", issueId, aiGenerated: false };
+  }
+}, {
+  name: "summarize",
+  description: "Generate an AI-powered concise summary of a specific municipal issue",
+  schema: z.object({
+    issueId: z.string().describe("The ID of the issue to summarize"),
+  }),
+});
+
+const sentimentTool = tool(async ({ issueId }) => {
+  try {
+    const issue = await Issue.findById(issueId);
+    if (!issue) {
+      return { sentiment: "neutral", confidence: 0, summary: "Issue not found" };
+    }
+
+    const llm = getModel();
+    if (!llm) {
+      return {
+        sentiment: "neutral",
+        confidence: 0,
+        issueId: issueId,
+        title: issue.title,
+        summary: "AI sentiment analysis unavailable"
+      };
+    }
+
+    const prompt = `Analyze the sentiment of this municipal issue report. Classify as positive, negative, or neutral, and provide a confidence score (0-1).
+
+Issue Title: ${issue.title}
+Issue Description: ${issue.description}
+
+Respond with JSON format: {"sentiment": "positive|negative|neutral", "confidence": 0.85, "reasoning": "brief explanation"}`;
+
+    const response = await llm.invoke([{
+      role: "user",
+      content: prompt
+    }]);
+
+    let sentimentData;
+    try {
+      const content = String(response.content ?? "").trim();
+      // Extract JSON from response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      sentimentData = jsonMatch ? JSON.parse(jsonMatch[0]) : { sentiment: "neutral", confidence: 0.5, reasoning: "Unable to parse response" };
+    } catch (parseError) {
+      sentimentData = { sentiment: "neutral", confidence: 0.5, reasoning: "Parse error" };
+    }
+
+    return {
+      sentiment: sentimentData.sentiment || "neutral",
+      confidence: sentimentData.confidence || 0.5,
+      reasoning: sentimentData.reasoning || "Analysis completed",
+      issueId: issueId,
+      title: issue.title,
+      summary: `Issue "${issue.title}" has ${sentimentData.sentiment || "neutral"} sentiment`
+    };
+  } catch (error) {
+    console.error("Sentiment tool error:", error);
+    return { sentiment: "neutral", confidence: 0, summary: "Error analyzing sentiment" };
+  }
+}, {
+  name: "sentiment",
+  description: "Analyze the sentiment of a municipal issue report using AI",
+  schema: z.object({
+    issueId: z.string().describe("The ID of the issue to analyze sentiment for"),
+  }),
+});
+
+const safetyAlertsTool = tool(async () => {
+  try {
+    // Focus on infrastructure issues like potholes and flooding that could pose safety risks
+    const safetyIssues = await Issue.find({
+      $or: [
+        { category: { $regex: /infrastructure|transportation|safety/i } },
+        { title: { $regex: /pothole|flood|dangerous|unsafe|hazard/i } },
+        { description: { $regex: /pothole|flood|dangerous|unsafe|hazard/i } }
+      ],
+      status: { $in: ["open", "in_progress"] }
+    }).sort({ createdAt: -1 }).limit(10);
+
+    const alerts = safetyIssues.map(issue => ({
+      id: issue._id.toString(),
+      title: issue.title,
+      category: issue.category,
+      status: issue.status,
+      location: issue.latitude && issue.longitude ? `${issue.latitude}, ${issue.longitude}` : "Location not specified",
+      createdAt: issue.createdAt,
+      priority: issue.category?.toLowerCase().includes("safety") || 
+               issue.title.toLowerCase().includes("dangerous") || 
+               issue.description.toLowerCase().includes("hazard") ? "high" : "medium"
+    }));
+
+    const highPriorityCount = alerts.filter(alert => alert.priority === "high").length;
+
+    return {
+      alerts,
+      totalAlerts: alerts.length,
+      highPriorityCount,
+      summary: `Found ${alerts.length} active safety-related issues (${highPriorityCount} high priority). Focus areas: potholes, flooding, and infrastructure hazards.`
+    };
+  } catch (error) {
+    console.error("Safety alerts tool error:", error);
+    return { alerts: [], totalAlerts: 0, highPriorityCount: 0, summary: "Error retrieving safety alerts" };
+  }
+}, {
+  name: "safety_alerts",
+  description: "Get active safety alerts for infrastructure issues like potholes and flooding hazards",
+  schema: z.object({}),
+});
+
 // Create a simple LangGraph agent using built-in tools
 const createAgent = () => {
   const llm = getModel();
@@ -259,6 +412,26 @@ const createAgent = () => {
         }
       }
 
+      if (userQuery.includes("summarize") || userQuery.includes("summary")) {
+        // For demo, summarize the first issue
+        const issues = await Issue.find().limit(1);
+        if (issues.length > 0) {
+          toolResults.summarize = await summarizeTool.invoke({ issueId: issues[0]._id.toString() });
+        }
+      }
+
+      if (userQuery.includes("sentiment") || userQuery.includes("feeling") || userQuery.includes("mood")) {
+        // For demo, analyze sentiment of the first issue
+        const issues = await Issue.find().limit(1);
+        if (issues.length > 0) {
+          toolResults.sentiment = await sentimentTool.invoke({ issueId: issues[0]._id.toString() });
+        }
+      }
+
+      if (userQuery.includes("safety") || userQuery.includes("alert") || userQuery.includes("danger") || userQuery.includes("hazard") || userQuery.includes("pothole") || userQuery.includes("flood")) {
+        toolResults.safety_alerts = await safetyAlertsTool.invoke({});
+      }
+
       // If no tools were triggered, run analytics as default
       if (Object.keys(toolResults).length === 0) {
         toolResults.analytics = await analyticsTool.invoke({});
@@ -278,6 +451,15 @@ const createAgent = () => {
         }
         if (toolResults.classify?.summary) {
           fallbackParts.push(toolResults.classify.summary);
+        }
+        if (toolResults.summarize?.summary) {
+          fallbackParts.push(`Summary: ${toolResults.summarize.summary}`);
+        }
+        if (toolResults.sentiment?.summary) {
+          fallbackParts.push(toolResults.sentiment.summary);
+        }
+        if (toolResults.safety_alerts?.summary) {
+          fallbackParts.push(toolResults.safety_alerts.summary);
         }
 
         return {
@@ -366,6 +548,9 @@ You have access to these tools:
 - search: Search for specific issues by title or description
 - trends: Analyze trends and identify clusters of similar issues
 - classify: Classify issues into categories using AI
+- summarize: Generate AI-powered concise summaries of issues
+- sentiment: Analyze the sentiment of issue reports
+- safety_alerts: Get active safety alerts for infrastructure issues like potholes and flooding hazards
 
 Always use the appropriate tools to provide accurate, helpful responses about municipal issues.
 Be concise but informative in your responses.`;

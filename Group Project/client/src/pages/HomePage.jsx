@@ -16,22 +16,12 @@ const GET_HOME_ISSUES = gql`
   }
 `;
 
-const heroStyle = {
-  background: "linear-gradient(155deg, #10293d 0%, #173b56 58%, #1e4f73 100%)",
-  color: "#f8f5ec"
-};
-
-const surfaceStyle = {
-  background: "#fffdf9",
-  border: "1px solid #dde6ec"
-};
-
 function MetricCard({ label, value, accent }) {
   return (
-    <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+    <Card className="app-stat-card app-surface-card border-0 h-100">
       <Card.Body className="p-4">
         <div
-          className="d-inline-flex rounded-pill px-2 py-1 small fw-semibold mb-3"
+          className="app-stat-label mb-3"
           style={{
             color: accent,
             background: `${accent}18`,
@@ -40,7 +30,7 @@ function MetricCard({ label, value, accent }) {
         >
           {label}
         </div>
-        <div className="fw-bold" style={{ fontSize: "2rem", color: "#10283a" }}>
+        <div className="app-stat-value">
           {value}
         </div>
       </Card.Body>
@@ -89,45 +79,23 @@ export default function HomePage() {
   }
 
   return (
-    <div
-      style={{
-        background:
-          "radial-gradient(circle at top left, rgba(255,209,111,0.18), transparent 18%), linear-gradient(180deg, #f6f1e8 0%, #f8f5ef 100%)"
-      }}
-    >
-      <Container fluid="xl" className="py-4 py-lg-5">
+    <div className="app-page">
+      <Container fluid="xl" className="app-page-shell py-4 py-lg-5">
         {issuesError && <Alert variant="danger">{issuesError.message}</Alert>}
 
         <Row className="g-4">
           <Col xl={5}>
-            <Card className="border-0 shadow-lg rounded-5 h-100" style={heroStyle}>
+            <Card className="app-hero-card h-100">
               <Card.Body className="p-4 p-lg-5 d-flex flex-column">
-                <div
-                  className="d-inline-flex align-self-start rounded-pill px-3 py-2 small fw-semibold mb-3"
-                  style={{
-                    color: "#fff2c2",
-                    background: "rgba(255,255,255,0.12)",
-                    border: "1px solid rgba(255,255,255,0.18)",
-                    letterSpacing: "0.08em"
-                  }}
-                >
+                <div className="app-eyebrow app-eyebrow-dark mb-3">
                   CivicCase
                 </div>
 
-                <h1
-                  className="fw-bold mb-3"
-                  style={{
-                    fontSize: "clamp(2.4rem, 4.3vw, 4.25rem)",
-                    lineHeight: 0.96,
-                    letterSpacing: "-0.04em",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
-                    maxWidth: "11ch"
-                  }}
-                >
+                <h1 className="app-display-title">
                   Local issue tracking for residents and staff.
                 </h1>
 
-                <p className="mb-4" style={{ color: "rgba(247,244,236,0.92)", lineHeight: 1.7 }}>
+                <p className="app-hero-lead mb-4">
                   Report problems, watch the issue landscape update live, and use the chatbot, analytics,
                   and map views to understand what is happening across the city.
                 </p>
@@ -138,30 +106,30 @@ export default function HomePage() {
                       Welcome back, <strong>{user.fullName}</strong>.
                     </p>
                     <p className="mb-4" style={{ color: "rgba(255,255,255,0.85)" }}>
-                      Signed in as <Badge bg="light" text="dark">{user.role}</Badge>
+                      Signed in as <Badge bg="light" text="dark" className="rounded-pill px-3 py-2">{user.role}</Badge>
                     </p>
 
                     <div className="d-flex flex-wrap gap-3 mt-auto">
-                      <Button as={Link} to="/report" variant="light">
+                      <Button as={Link} to="/report" className="app-button-light">
                         Report an Issue
                       </Button>
-                      <Button as={Link} to="/chatbot" variant="outline-light">
+                      <Button as={Link} to="/chatbot" className="app-button-secondary">
                         Open Chatbot
                       </Button>
-                      <Button as={Link} to="/analytics" variant="outline-light">
+                      <Button as={Link} to="/analytics" className="app-button-secondary">
                         Analytics
                       </Button>
-                      <Button as={Link} to="/map" variant="outline-light">
+                      <Button as={Link} to="/map" className="app-button-secondary">
                         Map
                       </Button>
                     </div>
                   </>
                 ) : (
                   <div className="d-flex gap-3 flex-wrap mt-auto">
-                    <Button as={Link} to="/login" variant="light">
+                    <Button as={Link} to="/login" className="app-button-light">
                       Login
                     </Button>
-                    <Button as={Link} to="/register" variant="outline-light">
+                    <Button as={Link} to="/register" className="app-button-secondary">
                       Register
                     </Button>
                   </div>
@@ -194,15 +162,15 @@ export default function HomePage() {
 
                 <Row className="g-3">
                   <Col lg={6}>
-                    <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+                    <Card className="app-surface-card border-0 h-100">
                       <Card.Body className="p-4">
-                        <div className="small fw-semibold text-uppercase mb-2" style={{ color: "#81631a", letterSpacing: "0.08em" }}>
+                        <div className="app-eyebrow app-eyebrow-light mb-3">
                           Resident Snapshot
                         </div>
-                        <h4 className="fw-bold mb-2" style={{ color: "#10283a" }}>
+                        <h4 className="app-panel-title mb-2">
                           Live issue visibility without asking the chatbot first.
                         </h4>
-                        <p className="mb-0" style={{ color: "#587182", lineHeight: 1.7 }}>
+                        <p className="app-panel-subtitle mb-0">
                           Residents can now land on the app and immediately see how many issues exist,
                           how much work is still open, and how much data is already mapped.
                         </p>
@@ -211,18 +179,18 @@ export default function HomePage() {
                   </Col>
 
                   <Col lg={6}>
-                    <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+                    <Card className="app-surface-card border-0 h-100">
                       <Card.Body className="p-4">
-                        <div className="small fw-semibold text-uppercase mb-2" style={{ color: "#81631a", letterSpacing: "0.08em" }}>
+                        <div className="app-eyebrow app-eyebrow-light mb-3">
                           Right Now
                         </div>
                         <div className="d-flex justify-content-between mb-3">
-                          <span style={{ color: "#18364c" }}>Mapped issue points</span>
-                          <strong style={{ color: "#10283a" }}>{mappedCount}</strong>
+                          <span className="app-text-strong">Mapped issue points</span>
+                          <strong className="app-text-strong">{mappedCount}</strong>
                         </div>
                         <div className="d-flex justify-content-between">
-                          <span style={{ color: "#18364c" }}>Most common category</span>
-                          <strong style={{ color: "#10283a" }}>
+                          <span className="app-text-strong">Most common category</span>
+                          <strong className="app-text-strong">
                             {topCategoryEntry ? `${topCategoryEntry[0]} (${topCategoryEntry[1]})` : "None yet"}
                           </strong>
                         </div>

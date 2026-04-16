@@ -25,12 +25,12 @@ export default function AppNavbar() {
   const user = data?.me;
 
   return (
-    <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm">
+    <Navbar expand="lg" variant="dark" className="app-navbar">
       <Container>
         <Navbar.Brand
           as={Link}
           to="/"
-          className="fw-bold text-white"
+          className="app-navbar-brand text-white"
         >
           CivicCase
         </Navbar.Brand>
@@ -39,24 +39,24 @@ export default function AppNavbar() {
 
         <Navbar.Collapse id="main-navbar">
           <Nav className="ms-auto align-items-center gap-2">
-            <Nav.Link as={Link} to="/" className="text-white">
+            <Nav.Link as={Link} to="/" className="app-navbar-link">
               Home
             </Nav.Link>
 
-            <Nav.Link as={Link} to="/chatbot" className="text-white">
+            <Nav.Link as={Link} to="/chatbot" className="app-navbar-link">
               Chatbot
             </Nav.Link>
 
-            <Nav.Link as={Link} to="/analytics" className="text-white">
+            <Nav.Link as={Link} to="/analytics" className="app-navbar-link">
               Analytics
             </Nav.Link>
 
-            <Nav.Link as={Link} to="/map" className="text-white">
+            <Nav.Link as={Link} to="/map" className="app-navbar-link">
               Map
             </Nav.Link>
 
             {user?.role === "staff" && (
-              <Nav.Link as={Link} to="/staff/issues" className="text-white fw-semibold">
+              <Nav.Link as={Link} to="/staff/issues" className="app-navbar-link">
                 Manage Issues
               </Nav.Link>
             )}
@@ -65,15 +65,15 @@ export default function AppNavbar() {
               <Spinner animation="border" size="sm" />
             ) : user ? (
               <>
-                <span className="text-light fw-semibold me-2">
+                <span className="app-navbar-user me-2">
                   {user.fullName} ({user.role})
                 </span>
 
                 <Button
-                  variant="outline-light"
                   size="sm"
                   onClick={() => logout()}
                   disabled={logoutLoading}
+                  className="app-button-secondary"
                 >
                   {logoutLoading ? "Logging out..." : "Logout"}
                 </Button>
@@ -83,8 +83,8 @@ export default function AppNavbar() {
                 <Button
                   as={Link}
                   to="/login"
-                  variant="outline-light"
                   size="sm"
+                  className="app-button-secondary"
                 >
                   Login
                 </Button>
@@ -92,8 +92,8 @@ export default function AppNavbar() {
                 <Button
                   as={Link}
                   to="/register"
-                  variant="light"
                   size="sm"
+                  className="app-button-light"
                 >
                   Register
                 </Button>

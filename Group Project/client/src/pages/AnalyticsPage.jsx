@@ -15,27 +15,17 @@ const GET_ISSUES = gql`
 `;
 
 const COLORS = {
-  open: "#cc543b",
-  in_progress: "#c48c16",
-  resolved: "#22835a"
-};
-
-const pageStyle = {
-  background:
-    "radial-gradient(circle at top left, rgba(255,209,111,0.18), transparent 18%), linear-gradient(180deg, #f6f1e8 0%, #f8f5ef 100%)"
-};
-
-const surfaceStyle = {
-  background: "#fffdf9",
-  border: "1px solid #dde6ec"
+  open: "#cf6048",
+  in_progress: "#d39821",
+  resolved: "#238357"
 };
 
 function MetricCard({ label, value, accent }) {
   return (
-    <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+    <Card className="app-stat-card app-surface-card border-0 h-100">
       <Card.Body className="p-4">
         <div
-          className="d-inline-flex rounded-pill px-2 py-1 small fw-semibold mb-3"
+          className="app-stat-label mb-3"
           style={{
             color: accent,
             background: `${accent}18`,
@@ -44,9 +34,7 @@ function MetricCard({ label, value, accent }) {
         >
           {label}
         </div>
-        <div className="fw-bold" style={{ fontSize: "2rem", color: "#10283a" }}>
-          {value}
-        </div>
+        <div className="app-stat-value">{value}</div>
       </Card.Body>
     </Card>
   );
@@ -84,77 +72,45 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <Container className="py-5 text-center">
+      <Container className="app-loader flex-column gap-3 text-center">
         <Spinner animation="border" />
+        <div className="app-loader-text">Loading analytics...</div>
       </Container>
     );
   }
 
   return (
-    <div style={pageStyle}>
-      <Container fluid="xl" className="py-4 py-lg-5">
+    <div className="app-page">
+      <Container fluid="xl" className="app-page-shell py-4 py-lg-5">
         {error && <Alert variant="danger">{error.message}</Alert>}
 
         <Row className="g-4">
           <Col xl={4}>
-            <Card
-              className="border-0 shadow-lg rounded-5 h-100"
-              style={{
-                background: "linear-gradient(155deg, #10293d 0%, #173b56 58%, #1e4f73 100%)",
-                color: "#f8f5ec"
-              }}
-            >
+            <Card className="app-hero-card h-100">
               <Card.Body className="p-4 p-lg-5 d-flex flex-column">
-                <div
-                  className="d-inline-flex align-self-start rounded-pill px-3 py-2 small fw-semibold mb-3"
-                  style={{
-                    color: "#fff2c2",
-                    background: "rgba(255,255,255,0.12)",
-                    border: "1px solid rgba(255,255,255,0.18)",
-                    letterSpacing: "0.08em"
-                  }}
-                >
-                  Analytics Overview
-                </div>
-
-                <h1
-                  className="fw-bold mb-3"
-                  style={{
-                    fontSize: "clamp(2.3rem, 4vw, 4rem)",
-                    lineHeight: 0.97,
-                    letterSpacing: "-0.04em",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
-                    maxWidth: "12ch"
-                  }}
-                >
-                  The current issue picture at a glance.
-                </h1>
-
-                <p className="mb-4" style={{ color: "rgba(247,244,236,0.92)", lineHeight: 1.7 }}>
+                <div className="app-eyebrow app-eyebrow-dark mb-3">Analytics Overview</div>
+                <h1 className="app-display-title">The current issue picture at a glance.</h1>
+                <p className="app-hero-lead mb-4">
                   This page turns the issue backlog into a quick operational read: workload, resolution health,
                   and the categories creating the most pressure.
                 </p>
 
-                <div className="mt-auto d-flex flex-column gap-3">
-                  <Card className="border-0 rounded-4" style={{ background: "rgba(255,255,255,0.10)" }}>
+                <div className="app-info-grid mt-auto">
+                  <Card className="app-glass-card border-0">
                     <Card.Body>
-                      <div className="small text-uppercase fw-semibold mb-1" style={{ color: "#ffe19a", letterSpacing: "0.08em" }}>
-                        Resolution Rate
-                      </div>
-                      <div className="fw-bold" style={{ fontSize: "2rem" }}>{resolutionRate}%</div>
+                      <div className="app-eyebrow app-eyebrow-dark mb-3">Resolution Rate</div>
+                      <div className="fw-bold" style={{ fontSize: "2.2rem" }}>{resolutionRate}%</div>
                     </Card.Body>
                   </Card>
 
-                  <Card className="border-0 rounded-4" style={{ background: "rgba(255,255,255,0.10)" }}>
+                  <Card className="app-glass-card border-0">
                     <Card.Body>
-                      <div className="small text-uppercase fw-semibold mb-2" style={{ color: "#ffe19a", letterSpacing: "0.08em" }}>
-                        Leading Categories
-                      </div>
+                      <div className="app-eyebrow app-eyebrow-dark mb-3">Leading Categories</div>
                       {topCategories.length === 0 ? (
                         <div style={{ color: "rgba(255,255,255,0.86)" }}>No issue data yet.</div>
                       ) : (
                         topCategories.map(([category, count]) => (
-                          <div key={category} className="d-flex justify-content-between mb-2" style={{ color: "rgba(255,255,255,0.92)" }}>
+                          <div key={category} className="app-inline-metric mb-2">
                             <span>{category}</span>
                             <strong>{count}</strong>
                           </div>
@@ -185,14 +141,14 @@ export default function AnalyticsPage() {
 
             <Row className="g-3">
               <Col lg={7}>
-                <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+                <Card className="app-surface-card border-0 h-100">
                   <Card.Body className="p-4">
-                    <h4 className="fw-bold mb-1" style={{ color: "#10283a" }}>Status Distribution</h4>
-                    <p className="mb-4" style={{ color: "#557082" }}>
+                    <h4 className="app-panel-title mb-2">Status Distribution</h4>
+                    <p className="app-panel-subtitle mb-4">
                       A quick view of how the backlog is split between new work, active work, and resolved work.
                     </p>
 
-                    <div style={{ width: "100%", height: "360px" }}>
+                    <div className="app-chart-shell" style={{ width: "100%", height: "360px", padding: "1rem" }}>
                       <ResponsiveContainer>
                         <PieChart>
                           <Pie
@@ -217,15 +173,15 @@ export default function AnalyticsPage() {
               </Col>
 
               <Col lg={5}>
-                <Card className="border-0 shadow-sm rounded-4 h-100" style={surfaceStyle}>
+                <Card className="app-surface-card border-0 h-100">
                   <Card.Body className="p-4">
-                    <h4 className="fw-bold mb-1" style={{ color: "#10283a" }}>Category Pressure</h4>
-                    <p className="mb-4" style={{ color: "#557082" }}>
+                    <h4 className="app-panel-title mb-2">Category Pressure</h4>
+                    <p className="app-panel-subtitle mb-4">
                       The most common report types in the current dataset.
                     </p>
 
                     {topCategories.length === 0 ? (
-                      <p className="mb-0" style={{ color: "#557082" }}>No category data available yet.</p>
+                      <p className="mb-0 app-muted">No category data available yet.</p>
                     ) : (
                       <div className="d-flex flex-column gap-3">
                         {topCategories.map(([category, count]) => {
@@ -234,8 +190,8 @@ export default function AnalyticsPage() {
                           return (
                             <div key={category}>
                               <div className="d-flex justify-content-between mb-2">
-                                <span className="fw-semibold" style={{ color: "#18364c" }}>{category}</span>
-                                <span className="fw-semibold" style={{ color: "#355267" }}>{count}</span>
+                                <span className="fw-semibold app-text-strong">{category}</span>
+                                <span className="fw-semibold app-muted">{count}</span>
                               </div>
                               <div className="rounded-pill" style={{ height: "12px", background: "#e4edf2" }}>
                                 <div

@@ -70,8 +70,9 @@ const markerIcon = new L.DivIcon({
 
 const shellStyle = {
   background:
-    "radial-gradient(circle at top left, rgba(243,201,105,0.22), transparent 28%), linear-gradient(180deg, #0f2334 0%, #132f46 42%, #f6f1e8 42%, #f8f5ef 100%)",
-  border: "1px solid rgba(14, 34, 51, 0.08)"
+    "radial-gradient(circle at top left, rgba(243,201,105,0.22), transparent 28%), linear-gradient(180deg, #0f2334 0%, #132f46 42%, rgba(255,255,255,0.88) 42%, rgba(248,250,252,0.94) 100%)",
+  border: "1px solid rgba(14, 34, 51, 0.08)",
+  backdropFilter: "blur(10px)"
 };
 
 const glassStyle = {
@@ -296,7 +297,8 @@ export default function ChatBotPage() {
   };
 
   return (
-    <Container fluid="xl" className="py-4 py-lg-5">
+    <div className="app-page">
+      <Container fluid="xl" className="app-page-shell py-4 py-lg-5">
       <div className="rounded-5 shadow-lg overflow-hidden" style={shellStyle}>
         <Row className="g-0">
           <Col
@@ -325,18 +327,12 @@ export default function ChatBotPage() {
 
               <h1
                 className="fw-bold mb-3 civiccase-heading"
-                style={{
-                  fontSize: "clamp(2.4rem, 4.1vw, 4.25rem)",
-                  maxWidth: "10ch",
-                  textWrap: "balance"
-                }}
               >
                 A chatbot page that actually looks like part of the product.
               </h1>
 
               <p
                 className="mb-4 civiccase-panel-text"
-                style={{ maxWidth: "28rem" }}
               >
                 Ask for trends, hotspots, or category breakdowns and the workspace updates the conversation,
                 analytics, and live map together.
@@ -543,6 +539,7 @@ export default function ChatBotPage() {
           </Col>
         </Row>
       </div>
-    </Container>
+      </Container>
+    </div>
   );
 }

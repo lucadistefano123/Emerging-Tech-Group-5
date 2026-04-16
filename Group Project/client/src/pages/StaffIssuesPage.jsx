@@ -1,19 +1,25 @@
 import { useState } from "react";
-import { Container, Card, Table, Badge, Button, Alert, Form, Modal, Spinner } from "react-bootstrap";
+import { Container, Card, Table, Button, Alert, Form, Modal, Spinner } from "react-bootstrap";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { GET_ISSUES, UPDATE_ISSUE_STATUS } from "../graphql/queries";
-
-const statusColors = {
-  open: "danger",
-  in_progress: "warning",
-  resolved: "success"
-};
 
 const statusLabels = {
   open: "Open",
   in_progress: "In Progress",
   resolved: "Resolved"
 };
+
+function getStatusClass(status) {
+  if (status === "open") {
+    return "chip-open";
+  }
+
+  if (status === "in_progress") {
+    return "chip-progress";
+  }
+
+  return "chip-resolved";
+}
 
 export default function StaffIssuesPage() {
   const [selectedIssue, setSelectedIssue] = useState(null);
@@ -64,7 +70,7 @@ export default function StaffIssuesPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(parseInt(dateString)).toLocaleDateString("en-US", {
+    return new Date(parseInt(dateString, 10)).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -75,9 +81,9 @@ export default function StaffIssuesPage() {
 
   if (loading) {
     return (
-      <Container className="py-5 text-center">
+      <Container className="app-loader flex-column gap-3 text-center">
         <Spinner animation="border" size="lg" />
-        <p className="mt-3">Loading issues...</p>
+        <div className="app-loader-text">Loading issues...</div>
       </Container>
     );
   }
@@ -85,129 +91,125 @@ export default function StaffIssuesPage() {
   const issues = data?.issues || [];
 
   return (
-    <Container className="py-4">
-      <Card className="shadow-lg">
-        <Card.Header className="bg-primary text-white">
-          <h3 className="mb-0">Issue Management</h3>
-          <p className="mb-0 mt-1 opacity-75">Manage and update issue statuses</p>
-        </Card.Header>
-
-        <Card.Body className="p-0">
-          {successMsg && (
-            <Alert variant="success" className="m-3 mb-0 rounded-0">
-              {successMsg}
-            </Alert>
-          )}
-
-          {errorMsg && (
-            <Alert variant="danger" className="m-3 mb-0 rounded-0">
-              {errorMsg}
-            </Alert>
-          )}
-
-          {issues.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="text-muted">No issues found.</p>
+    <div className="app-page">
+      <Container fluid="xl" className="app-page-shell py-4 py-lg-5">
+        <Card className="app-surface-card border-0 mb-4">
+          <Card.Body className="p-4 p-lg-5 d-flex flex-column flex-lg-row justify-content-between gap-4 align-items-lg-center">
+            <div>
+              <div className="app-eyebrow app-eyebrow-light mb-3">Staff Console</div>
+              <h2 className="app-panel-title mb-2">Issue management</h2>
+              <p className="app-panel-subtitle mb-0">
+                Review the full queue, assign ownership, and keep issue statuses current for residents.
+              </p>
             </div>
-          ) : (
-            <div className="table-responsive">
-              <Table striped hover className="mb-0">
-                <thead className="table-dark">
-                  <tr>
-                    <th className="py-3">Title</th>
-                    <th className="py-3">Category</th>
-                    <th className="py-3">Status</th>
-                    <th className="py-3">Reported By</th>
-                    <th className="py-3">Assigned To</th>
-                    <th className="py-3">Created</th>
-                    <th className="py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {issues.map((issue) => (
-                    <tr key={issue.id}>
-                      <td className="py-3">
-                        <div>
-                          <strong className="text-truncate d-block" style={{ maxWidth: "200px" }}>
-                            {issue.title}
-                          </strong>
-                          <small className="text-muted text-truncate d-block" style={{ maxWidth: "200px" }}>
-                            {issue.description}
-                          </small>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <Badge bg="secondary">{issue.category || "General"}</Badge>
-                      </td>
-                      <td className="py-3">
-                        <Badge bg={statusColors[issue.status]}>
-                          {statusLabels[issue.status]}
-                        </Badge>
-                      </td>
-                      <td className="py-3">
-                        <div>
-                          <div className="fw-semibold">{issue.reportedBy.fullName}</div>
-                          <small className="text-muted">{issue.reportedBy.email}</small>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        {issue.assignedTo ? (
-                          <div>
-                            <div className="fw-semibold">{issue.assignedTo.fullName}</div>
-                            <small className="text-muted">{issue.assignedTo.email}</small>
-                          </div>
-                        ) : (
-                          <span className="text-muted">Unassigned</span>
-                        )}
-                      </td>
-                      <td className="py-3">
-                        <small className="text-muted">
-                          {formatDate(issue.createdAt)}
-                        </small>
-                      </td>
-                      <td className="py-3 text-center">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => handleUpdateClick(issue)}
-                        >
-                          Update Status
-                        </Button>
-                      </td>
+            <div className="d-flex flex-wrap gap-2">
+              <span className="app-chip chip-neutral">{issues.length} issues in queue</span>
+              <span className="app-chip chip-neutral">Staff tools enabled</span>
+            </div>
+          </Card.Body>
+        </Card>
+
+        {successMsg && <Alert variant="success">{successMsg}</Alert>}
+        {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+
+        <Card className="app-table-shell border-0">
+          <Card.Body className="p-0">
+            {issues.length === 0 ? (
+              <div className="app-empty-state">No issues found.</div>
+            ) : (
+              <div className="table-responsive">
+                <Table hover className="align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th className="py-3 px-4">Title</th>
+                      <th className="py-3">Category</th>
+                      <th className="py-3">Status</th>
+                      <th className="py-3">Reported By</th>
+                      <th className="py-3">Assigned To</th>
+                      <th className="py-3">Created</th>
+                      <th className="py-3 text-center px-4">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {issues.map((issue) => (
+                      <tr key={issue.id}>
+                        <td className="py-3 px-4">
+                          <div style={{ minWidth: "220px" }}>
+                            <strong className="text-truncate d-block app-text-strong">{issue.title}</strong>
+                            <small className="app-muted text-truncate d-block">{issue.description}</small>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <span className="app-chip chip-neutral">{issue.category || "General"}</span>
+                        </td>
+                        <td className="py-3">
+                          <span className={`app-chip ${getStatusClass(issue.status)}`}>
+                            {statusLabels[issue.status]}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <div>
+                            <div className="fw-semibold app-text-strong">{issue.reportedBy.fullName}</div>
+                            <small className="app-muted">{issue.reportedBy.email}</small>
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          {issue.assignedTo ? (
+                            <div>
+                              <div className="fw-semibold app-text-strong">{issue.assignedTo.fullName}</div>
+                              <small className="app-muted">{issue.assignedTo.email}</small>
+                            </div>
+                          ) : (
+                            <span className="app-muted">Unassigned</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          <small className="app-muted">{formatDate(issue.createdAt)}</small>
+                        </td>
+                        <td className="py-3 text-center px-4">
+                          <Button
+                            className="app-button-ghost"
+                            size="sm"
+                            onClick={() => handleUpdateClick(issue)}
+                          >
+                            Update Status
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+      </Container>
 
-      {/* Update Status Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton className="bg-primary text-white">
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered dialogClassName="app-modal">
+        <Modal.Header closeButton>
           <Modal.Title>Update Issue Status</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleUpdateSubmit}>
           <Modal.Body>
             {selectedIssue && (
               <div className="mb-4">
-                <h6 className="fw-bold">{selectedIssue.title}</h6>
-                <p className="text-muted mb-3">{selectedIssue.description}</p>
+                <h6 className="fw-bold app-text-strong">{selectedIssue.title}</h6>
+                <p className="app-muted mb-3">{selectedIssue.description}</p>
                 <div className="d-flex gap-2 mb-3">
-                  <Badge bg={statusColors[selectedIssue.status]}>
+                  <span className={`app-chip ${getStatusClass(selectedIssue.status)}`}>
                     Current: {statusLabels[selectedIssue.status]}
-                  </Badge>
+                  </span>
                 </div>
               </div>
             )}
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold">New Status</Form.Label>
+              <Form.Label className="app-form-label">New Status</Form.Label>
               <Form.Select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
                 required
+                className="app-form-select"
               >
                 <option value="">Select status...</option>
                 <option value="open">Open</option>
@@ -216,26 +218,27 @@ export default function StaffIssuesPage() {
               </Form.Select>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold">Assign To (Optional)</Form.Label>
+            <Form.Group>
+              <Form.Label className="app-form-label">Assign To (Optional)</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Staff member ID (leave empty to unassign)"
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
+                className="app-form-control"
               />
-              <Form.Text className="text-muted">
+              <Form.Text className="app-muted">
                 Enter the ID of the staff member to assign this issue to.
               </Form.Text>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
+            <Button className="app-button-ghost" onClick={() => setShowModal(false)}>
               Cancel
             </Button>
             <Button
               type="submit"
-              variant="primary"
+              className="app-button-primary"
               disabled={updating || !newStatus}
             >
               {updating ? "Updating..." : "Update Status"}
@@ -243,6 +246,6 @@ export default function StaffIssuesPage() {
           </Modal.Footer>
         </Form>
       </Modal>
-    </Container>
+    </div>
   );
 }

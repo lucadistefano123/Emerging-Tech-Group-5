@@ -5,6 +5,8 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .left-panel-content {
@@ -12,6 +14,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  z-index: 1;
 }
 
 /* Left Panel Badge - Improved Contrast */
@@ -27,17 +31,23 @@
   color: #fdfaf2;
   font-family: Georgia, 'Times New Roman', serif;
   text-shadow: 0 3px 14px rgba(0, 0, 0, 0.22);
-  line-height: 0.96;
+  line-height: 0.98;
   letter-spacing: -0.04em;
+  font-size: clamp(2.5rem, 3.2vw, 4rem);
+  max-width: 8ch;
+  margin-right: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 /* Left Panel Main Text - Improved Contrast */
 .civiccase-panel-text {
   color: #fff5e6;
   line-height: 1.75;
+  max-width: 24rem;
 }
 
-/* Glass Button Style - Improved Contrast */
+/* Glass Button Style - Improved Contrast and Hover */
 .civiccase-glass-button {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -48,11 +58,20 @@
   padding: 0.75rem 1rem;
   text-align: left;
   transition: all 0.3s ease;
+  cursor: pointer;
+  width: 100%;
 }
 
 .civiccase-glass-button:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.30);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 35px rgba(3, 12, 22, 0.20);
+}
+
+.civiccase-glass-button:active {
+  transform: translateY(0);
+  box-shadow: 0 14px 30px rgba(3, 12, 22, 0.16);
 }
 
 .civiccase-glass-button .prompt-label {
@@ -93,7 +112,7 @@
   font-size: 0.875rem;
 }
 
-/* Chat History Container */
+/* Chat History Container - Improved Scrolling */
 .chat-history-container {
   min-height: 320px;
   max-height: 420px;
@@ -102,6 +121,25 @@
   border: 1px solid rgba(23, 50, 77, 0.08);
   border-radius: 1.5rem;
   padding: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(23, 50, 77, 0.3) transparent;
+}
+
+.chat-history-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-history-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-history-container::-webkit-scrollbar-thumb {
+  background: rgba(23, 50, 77, 0.3);
+  border-radius: 3px;
+}
+
+.chat-history-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(23, 50, 77, 0.5);
 }
 
 @media (max-width: 991px) {
@@ -162,26 +200,34 @@
   line-height: 1.5;
 }
 
-/* Form Input */
+/* Form Input - Improved Styling */
 .chatbot-input {
   border-radius: 1.25rem;
-  border: 1px solid #7a8c99;
+  border: 2px solid #7a8c99;
   padding: 0.9rem 1.1rem;
   color: #102536;
   background: #fffefb;
   font-size: 1rem;
+  transition: all 0.3s ease;
 }
 
 .chatbot-input::placeholder {
   color: #7a8c99;
+  opacity: 0.7;
 }
 
 .chatbot-input:focus {
   border-color: #17324d;
   box-shadow: 0 0 0 3px rgba(23, 50, 77, 0.1);
+  outline: none;
+  background: #ffffff;
 }
 
-/* Submit Button */
+.chatbot-input:hover:not(:focus) {
+  border-color: #4a6578;
+}
+
+/* Submit Button - Improved States */
 .chatbot-submit-btn {
   background: linear-gradient(135deg, #1a3a52 0%, #254c6e 100%);
   border: none;
@@ -191,18 +237,52 @@
   border-radius: 1rem;
   padding: 0.9rem 1.5rem;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.chatbot-submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.chatbot-submit-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .chatbot-submit-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #213d56 0%, #2d5577 100%);
   box-shadow: 0 8px 20px rgba(23, 50, 77, 0.25);
+  transform: translateY(-2px);
+}
+
+.chatbot-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(23, 50, 77, 0.15);
 }
 
 .chatbot-submit-btn:disabled {
   opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Metric Card Labels */
+/* Accessibility Improvements */
+.civiccase-glass-button:focus-visible,
+.chatbot-input:focus-visible,
+.chatbot-submit-btn:focus-visible {
+  outline: 2px solid #f3c969;
+  outline-offset: 2px;
+}
+
+/* Improved Metric Cards */
 .metric-label {
   background: rgba(0, 0, 0, 0.05);
   color: #17324d;
@@ -211,6 +291,12 @@
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(23, 50, 77, 0.15);
+  transition: all 0.2s ease;
+}
+
+.metric-label:hover {
+  background: rgba(23, 50, 77, 0.08);
+  border-color: rgba(23, 50, 77, 0.25);
 }
 
 /* Chart Cards */
@@ -236,6 +322,48 @@
   font-weight: 600;
 }
 
+/* Chat Bubble Animations */
+.chat-bubble-user,
+.chat-bubble-bot {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading Animation for Submit Button */
+.chatbot-submit-btn:disabled {
+  position: relative;
+}
+
+.chatbot-submit-btn:disabled::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: auto;
+  border: 2px solid transparent;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
 /* Status Colors with proper contrast */
 .status-open {
   color: #db5c44;
@@ -249,12 +377,18 @@
   color: #2c9c6a;
 }
 
-/* Badge Styling */
+/* Badge Styling - Improved */
 .civiccase-badge-info {
   background: #f5f0e8;
   color: #102536;
   border: 1px solid #d9d0c2;
   font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.civiccase-badge-info:hover {
+  background: #ede6d6;
+  border-color: #c9b89a;
 }
 
 .civiccase-badge-success {
@@ -271,10 +405,11 @@
   font-weight: 600;
 }
 
-/* On small screens */
+/* On small screens - Improved Mobile Layout */
 @media (max-width: 768px) {
   .civiccase-heading {
     font-size: 2rem;
+    max-width: 100%;
   }
 
   .civiccase-panel-text {
@@ -283,5 +418,35 @@
 
   .chatbot-submit-btn {
     min-width: 100%;
+  }
+
+  .chat-history-container {
+    min-height: 250px;
+    max-height: 350px;
+    padding: 0.75rem;
+  }
+
+  .left-panel-container {
+    min-height: auto;
+  }
+
+  .civiccase-glass-button {
+    padding: 0.625rem 0.875rem;
+  }
+
+  .civiccase-glass-button .prompt-text {
+    font-size: 0.875rem;
+  }
+}
+
+/* Medium screens */
+@media (max-width: 991px) {
+  .chat-history-container {
+    padding: 0.875rem;
+  }
+
+  .civiccase-heading {
+    font-size: clamp(2rem, 5.5vw, 2.75rem);
+    max-width: 100%;
   }
 }

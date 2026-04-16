@@ -29,8 +29,9 @@ const client = new ApolloClient({
 
 function PageLoader() {
   return (
-    <Container className="py-5 text-center">
+    <Container className="app-loader flex-column gap-3 text-center">
       <Spinner animation="border" />
+      <div className="app-loader-text">Loading workspace...</div>
     </Container>
   );
 }

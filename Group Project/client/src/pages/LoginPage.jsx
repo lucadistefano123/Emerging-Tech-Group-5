@@ -42,61 +42,80 @@ export default function LoginPage() {
   };
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Card
-        className="shadow-lg p-5"
-        style={{ maxWidth: "500px", width: "100%" }}
-      >
-        <h2 className="mb-4 text-dark fw-bold">Login</h2>
+    <div className="app-page">
+      <Container className="app-auth-page">
+        <Card className="app-auth-card border-0 w-100 mx-auto" style={{ maxWidth: "1120px" }}>
+          <div className="app-auth-grid">
+            <div className="app-auth-panel">
+              <div className="app-eyebrow app-eyebrow-dark mb-3">Resident Access</div>
+              <h1 className="app-display-title">Sign back in to CivicCase.</h1>
+              <p className="app-hero-lead">
+                Track local issues, submit new reports, and move between the chatbot, analytics,
+                and map without losing context.
+              </p>
 
-        {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+              <div className="app-feature-list">
+                <div className="app-feature-item">Live issue status visibility for residents and staff</div>
+                <div className="app-feature-item">Fast reporting flow with map-ready location details</div>
+                <div className="app-feature-item">One workspace for operations, trends, and geographic context</div>
+              </div>
+            </div>
 
-        <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-semibold text-dark">
-              Email
-            </Form.Label>
-            <Form.Control
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
+            <div className="app-auth-form">
+              <div className="app-eyebrow app-eyebrow-light mb-3">Login</div>
+              <h2 className="app-panel-title mb-2">Welcome back</h2>
+              <p className="app-panel-subtitle mb-4">
+                Use your account to continue where you left off.
+              </p>
 
-          <Form.Group className="mb-4">
-            <Form.Label className="fw-semibold text-dark">
-              Password
-            </Form.Label>
-            <Form.Control
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
+              {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
 
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-100"
-            disabled={loading}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </Button>
-        </Form>
+              <Form onSubmit={handleSubmit} className="app-form-shell">
+                <Form.Group>
+                  <Form.Label className="app-form-label">Email</Form.Label>
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    className="app-form-control"
+                  />
+                </Form.Group>
 
-        <p className="mt-3 text-center text-secondary">
-          Don’t have an account?{" "}
-          <Link to="/register" className="fw-semibold">
-            Register
-          </Link>
-        </p>
-      </Card>
-    </Container>
+                <Form.Group>
+                  <Form.Label className="app-form-label">Password</Form.Label>
+                  <Form.Control
+                    type="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                    className="app-form-control"
+                  />
+                </Form.Group>
+
+                <Button
+                  type="submit"
+                  className="app-button-primary w-100"
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Login"}
+                </Button>
+              </Form>
+
+              <p className="mt-4 text-center app-muted">
+                Don&apos;t have an account?{" "}
+                <Link to="/register" className="fw-semibold text-decoration-none">
+                  Register
+                </Link>
+              </p>
+            </div>
+          </div>
+        </Card>
+      </Container>
+    </div>
   );
 }
