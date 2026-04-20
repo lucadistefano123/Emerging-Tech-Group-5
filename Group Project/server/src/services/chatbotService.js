@@ -5,6 +5,7 @@ import { z } from "zod";
 
 // Initialize Gemini model (lazy initialization)
 let model = null;
+let aiDisabledReason = "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const VALID_CLASSIFICATION_CATEGORIES = [
   "Infrastructure",
@@ -17,7 +18,21 @@ const VALID_CLASSIFICATION_CATEGORIES = [
   "Other"
 ];
 
+const isBlockedApiKeyError = (error) => {
+  const message = String(error?.message ?? "").toLowerCase();
+  return error?.status === 403 && (message.includes("api key was reported as leaked") || message.includes("forbidden"));
+};
+
+const disableAi = (reason) => {
+  aiDisabledReason = reason;
+  model = null;
+};
+
 const getModel = () => {
+  if (aiDisabledReason) {
+    return null;
+  }
+
   if (!model && process.env.GOOGLE_API_KEY) {
     try {
       model = new ChatGoogleGenerativeAI({
@@ -212,10 +227,13 @@ Respond with ONLY the category name.`;
       title: issue.title,
       summary: `Issue "${issue.title}" classified as ${finalCategory}`
     };
-  } catch (error) {
-    console.error("Classify tool error:", error);
-    return { category: "General", confidence: 0, summary: "Error classifying issue" };
-  }
+    } catch (error) {
+      if (isBlockedApiKeyError(error)) {
+        disableAi("Google rejected the configured Gemini API key.");
+      }
+      console.error("Classify tool error:", error);
+      return { category: "General", confidence: 0, summary: "Error classifying issue" };
+    }
 }, {
   name: "classify",
   description: "Classify a specific municipal issue into predefined categories using AI",
@@ -263,10 +281,13 @@ Provide a concise summary that captures the essence of the issue.`;
       status: issue.status,
       aiGenerated: true
     };
-  } catch (error) {
-    console.error("Summarize tool error:", error);
-    return { summary: "Error generating summary", issueId, aiGenerated: false };
-  }
+    } catch (error) {
+      if (isBlockedApiKeyError(error)) {
+        disableAi("Google rejected the configured Gemini API key.");
+      }
+      console.error("Summarize tool error:", error);
+      return { summary: "Error generating summary", issueId, aiGenerated: false };
+    }
 }, {
   name: "summarize",
   description: "Generate an AI-powered concise summary of a specific municipal issue",
@@ -323,10 +344,13 @@ Respond with JSON format: {"sentiment": "positive|negative|neutral", "confidence
       title: issue.title,
       summary: `Issue "${issue.title}" has ${sentimentData.sentiment || "neutral"} sentiment`
     };
-  } catch (error) {
-    console.error("Sentiment tool error:", error);
-    return { sentiment: "neutral", confidence: 0, summary: "Error analyzing sentiment" };
-  }
+    } catch (error) {
+      if (isBlockedApiKeyError(error)) {
+        disableAi("Google rejected the configured Gemini API key.");
+      }
+      console.error("Sentiment tool error:", error);
+      return { sentiment: "neutral", confidence: 0, summary: "Error analyzing sentiment" };
+    }
 }, {
   name: "sentiment",
   description: "Analyze the sentiment of a municipal issue report using AI",
@@ -495,11 +519,16 @@ Provide a concise, informative response about the municipal issues.`;
       };
 
     } catch (error) {
+      if (isBlockedApiKeyError(error)) {
+        disableAi("Google rejected the configured Gemini API key.");
+      }
       console.error("Agent execution error:", error);
       return {
         messages: [...messages, {
           role: "assistant",
-          content: "I encountered an error while processing your request. Let me provide some basic analytics instead.",
+          content: aiDisabledReason
+            ? "The Gemini API key is unavailable, so I switched to analytics-only mode."
+            : "I encountered an error while processing your request. Let me provide some basic analytics instead.",
           error: true
         }]
       };
@@ -524,13 +553,15 @@ export const getChatbotReply = async (message) => {
     console.log("Chatbot called with message:", message);
     const apiKey = process.env.GOOGLE_API_KEY;
 
-    if (!apiKey) {
-      console.log("No API key available");
+    if (!apiKey || aiDisabledReason) {
+      console.log(!apiKey ? "No API key available" : `AI disabled: ${aiDisabledReason}`);
       // Fallback without AI
       const issues = await Issue.find();
       const analytics = buildAnalytics(issues);
       return {
-        reply: "AI service is currently unavailable. Here are the current analytics.",
+        reply: aiDisabledReason
+          ? `${aiDisabledReason} Showing the latest issue analytics instead.`
+          : "AI service is currently unavailable. Here are the current analytics.",
         analytics,
         aiEnabled: false
       };

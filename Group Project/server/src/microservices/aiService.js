@@ -102,7 +102,7 @@ const buildAnalytics = (issues) => {
 
 app.get("/analytics", authenticate, async (req, res) => {
   try {
-    const issues = await Issue.find().populate("reportedBy").populate("assignedTo");
+    const issues = await Issue.find();
     res.json(buildAnalytics(issues));
   } catch (error) {
     res.status(500).json({ message: error.message });

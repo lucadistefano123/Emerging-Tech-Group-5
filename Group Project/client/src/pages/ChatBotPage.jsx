@@ -11,11 +11,12 @@ import {
   Spinner
 } from "react-bootstrap";
 import { gql } from "@apollo/client";
-import { useMutation } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./ChatBotPage.css";
+import { GET_ANALYTICS } from "../graphql/queries";
 
 const CHATBOT = gql`
   mutation Chatbot($message: String!) {
@@ -253,6 +254,15 @@ export default function ChatBotPage() {
   const [latestResult, setLatestResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const {
+    data: analyticsData,
+    loading: analyticsLoading,
+    error: analyticsError
+  } = useQuery(GET_ANALYTICS, {
+    fetchPolicy: "network-only",
+    pollInterval: 10000
+  });
+
   const [sendMessage, { loading }] = useMutation(CHATBOT, {
     onCompleted: (data) => {
       const result = data.chatbot;
@@ -271,7 +281,7 @@ export default function ChatBotPage() {
     }
   });
 
-  const analytics = latestResult?.analytics;
+  const analytics = latestResult?.analytics ?? analyticsData?.analytics;
   const mapCenter = analytics?.hotspots?.length
     ? [analytics.hotspots[0].latitude, analytics.hotspots[0].longitude]
     : [43.6532, -79.3832];
@@ -375,6 +385,7 @@ export default function ChatBotPage() {
 
           <Col xl={8} className="p-3 p-lg-4 p-xl-5" style={{ background: "#f8f5ef" }}>
             {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
+            {analyticsError && <Alert variant="danger">{analyticsError.message}</Alert>}
 
             <Card className="border-0 shadow-sm rounded-5 mb-4" style={panelStyle}>
               <Card.Body className="p-3 p-lg-4">
@@ -400,7 +411,12 @@ export default function ChatBotPage() {
                 </div>
 
                 <div className="chat-history-container mb-4">
-                  {chatHistory.length === 0 ? (
+                  {chatHistory.length === 0 && analyticsLoading ? (
+                    <div className="h-100 d-flex flex-column justify-content-center align-items-start">
+                      <Spinner animation="border" className="mb-3" />
+                      <p className="content-subtext mb-0">Loading the latest analytics...</p>
+                    </div>
+                  ) : chatHistory.length === 0 ? (
                     <div className="h-100 d-flex flex-column justify-content-center text-start">
                       <div className="content-label mb-2">
                         Ready for first analysis

@@ -137,6 +137,20 @@ export default function StaffIssuesPage() {
                           <div style={{ minWidth: "220px" }}>
                             <strong className="text-truncate d-block app-text-strong">{issue.title}</strong>
                             <small className="app-muted text-truncate d-block">{issue.description}</small>
+                            {issue.imageUrl && (
+                              <img
+                                src={issue.imageUrl}
+                                alt={issue.title}
+                                style={{
+                                  width: "120px",
+                                  height: "120px",
+                                  objectFit: "cover",
+                                  borderRadius: "12px",
+                                  marginTop: "12px",
+                                  display: "block"
+                                }}
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="py-3">
@@ -195,6 +209,19 @@ export default function StaffIssuesPage() {
               <div className="mb-4">
                 <h6 className="fw-bold app-text-strong">{selectedIssue.title}</h6>
                 <p className="app-muted mb-3">{selectedIssue.description}</p>
+                {selectedIssue.imageUrl && (
+                  <img
+                    src={selectedIssue.imageUrl}
+                    alt={selectedIssue.title}
+                    style={{
+                      width: "100%",
+                      maxHeight: "320px",
+                      objectFit: "cover",
+                      borderRadius: "16px",
+                      marginBottom: "16px"
+                    }}
+                  />
+                )}
                 <div className="d-flex gap-2 mb-3">
                   <span className={`app-chip ${getStatusClass(selectedIssue.status)}`}>
                     Current: {statusLabels[selectedIssue.status]}
