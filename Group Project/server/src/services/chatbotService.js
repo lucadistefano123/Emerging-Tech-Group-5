@@ -3,7 +3,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 
-// Initialize Gemini model (lazy initialization)
+// Lazy initialization of Gemini model
 let model = null;
 let aiDisabledReason = "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -48,7 +48,6 @@ const getModel = () => {
   return model;
 };
 
-// LangGraph Tools
 const analyticsTool = tool(async () => {
   try {
     const issues = await Issue.find();
@@ -119,7 +118,6 @@ const trendsTool = tool(async () => {
   try {
     const issues = await Issue.find().sort({ createdAt: -1 });
 
-    // Basic daily trends
     const trendMap = new Map();
     issues.forEach(issue => {
       const date = new Date(issue.createdAt).toISOString().slice(0, 10);
@@ -130,7 +128,6 @@ const trendsTool = tool(async () => {
       .slice(-7)
       .map(([label, value]) => ({ label, value }));
 
-    // AI-powered clustering of similar issues
     const categoryClusters = {};
     issues.forEach(issue => {
       const category = issue.category || "General";
@@ -144,15 +141,13 @@ const trendsTool = tool(async () => {
       });
     });
 
-    // Find clusters within categories (similar titles/descriptions)
     const clusters = [];
     Object.entries(categoryClusters).forEach(([category, issues]) => {
       if (issues.length > 1) {
-        // Simple clustering based on keyword similarity
         const keywordGroups = {};
         issues.forEach(issue => {
           const keywords = issue.title.toLowerCase().split(/\s+/).filter(word => word.length > 3);
-          const key = keywords.slice(0, 2).join(' '); // Use first 2 significant words as cluster key
+          const key = keywords.slice(0, 2).join(' ');
 
           if (!keywordGroups[key]) {
             keywordGroups[key] = [];
@@ -329,7 +324,6 @@ Respond with JSON format: {"sentiment": "positive|negative|neutral", "confidence
     let sentimentData;
     try {
       const content = String(response.content ?? "").trim();
-      // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       sentimentData = jsonMatch ? JSON.parse(jsonMatch[0]) : { sentiment: "neutral", confidence: 0.5, reasoning: "Unable to parse response" };
     } catch (parseError) {
@@ -401,20 +395,16 @@ const safetyAlertsTool = tool(async () => {
   schema: z.object({}),
 });
 
-// Create a simple LangGraph agent using built-in tools
 const createAgent = () => {
   const llm = getModel();
 
-  // Simple agent function that uses tools directly
   const agent = async (messages) => {
     try {
-      // Get the last user message
       const lastMessage = messages[messages.length - 1];
       const userQuery = lastMessage.content.toLowerCase();
 
       let toolResults = {};
 
-      // Simple keyword-based tool selection and execution
       if (userQuery.includes("analytics") || userQuery.includes("how many") || userQuery.includes("total") || userQuery.includes("count")) {
         toolResults.analytics = await analyticsTool.invoke({});
       }
@@ -429,7 +419,6 @@ const createAgent = () => {
       }
 
       if (userQuery.includes("classify") || userQuery.includes("category")) {
-        // For demo, classify the first issue
         const issues = await Issue.find().limit(1);
         if (issues.length > 0) {
           toolResults.classify = await classifyTool.invoke({ issueId: issues[0]._id.toString() });
@@ -437,7 +426,6 @@ const createAgent = () => {
       }
 
       if (userQuery.includes("summarize") || userQuery.includes("summary")) {
-        // For demo, summarize the first issue
         const issues = await Issue.find().limit(1);
         if (issues.length > 0) {
           toolResults.summarize = await summarizeTool.invoke({ issueId: issues[0]._id.toString() });
@@ -445,7 +433,6 @@ const createAgent = () => {
       }
 
       if (userQuery.includes("sentiment") || userQuery.includes("feeling") || userQuery.includes("mood")) {
-        // For demo, analyze sentiment of the first issue
         const issues = await Issue.find().limit(1);
         if (issues.length > 0) {
           toolResults.sentiment = await sentimentTool.invoke({ issueId: issues[0]._id.toString() });
@@ -495,7 +482,6 @@ const createAgent = () => {
         };
       }
 
-      // Generate response using AI
       const resultsStr = JSON.stringify(toolResults, null, 2);
       const prompt = `You are CivicCase AI, a municipal issue analysis assistant.
 
@@ -538,7 +524,6 @@ Provide a concise, informative response about the municipal issues.`;
   return agent;
 };
 
-// Initialize the agent
 let agent = null;
 const getAgent = () => {
   if (!agent) {
@@ -547,7 +532,6 @@ const getAgent = () => {
   return agent;
 };
 
-// Main chatbot function using LangGraph agent
 export const getChatbotReply = async (message) => {
   try {
     console.log("Chatbot called with message:", message);
@@ -633,7 +617,6 @@ Be concise but informative in your responses.`;
   }
 };
 
-// Helper function
 const buildAnalytics = (issues) => {
   const statusCounts = [
     { label: "open", value: issues.filter(i => i.status === "open").length },

@@ -1,6 +1,5 @@
-/* Chatbot Page Styles with WCAG AA Contrast Compliance */
+/* Chatbot page styles */
 
-/* Left Panel Container */
 .left-panel-container {
   min-height: 100%;
   display: flex;
@@ -18,7 +17,6 @@
   z-index: 1;
 }
 
-/* Left Panel Badge - Improved Contrast */
 .civiccase-badge {
   background: rgba(243, 201, 105, 0.25) !important;
   border: 1px solid rgba(243, 201, 105, 0.5) !important;
@@ -26,7 +24,6 @@
   letter-spacing: 0.08em;
 }
 
-/* Left Panel Heading Text Color - Improved for Dark Background */
 .civiccase-heading {
   color: #fdfaf2;
   font-family: Georgia, 'Times New Roman', serif;
@@ -40,14 +37,13 @@
   word-break: normal;
 }
 
-/* Left Panel Main Text - Improved Contrast */
 .civiccase-panel-text {
   color: #fff5e6;
   line-height: 1.75;
   max-width: 24rem;
 }
 
-/* Glass Button Style - Improved Contrast and Hover */
+/* Glass button styling */
 .civiccase-glass-button {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -88,7 +84,7 @@
   color: #f8f3e8;
 }
 
-/* Info Card Styling - Improved Text Contrast */
+/* Info card styling */
 .civiccase-info-card {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -112,7 +108,7 @@
   font-size: 0.875rem;
 }
 
-/* Chat History Container - Improved Scrolling */
+/* Chat history container */
 .chat-history-container {
   min-height: 320px;
   max-height: 420px;
@@ -148,7 +144,7 @@
   }
 }
 
-/* Chat Bubble - User */
+/* User chat bubble */
 .chat-bubble-user {
   background: linear-gradient(135deg, #1a3a52 0%, #254c6e 100%);
   color: #ffffff;
@@ -164,7 +160,7 @@
   text-align: right;
 }
 
-/* Chat Bubble - Bot */
+/* Bot chat bubble */
 .chat-bubble-bot {
   background: linear-gradient(180deg, #fffefb 0%, #f6efe1 100%);
   color: #1a2d3d;
@@ -180,7 +176,7 @@
   text-align: left;
 }
 
-/* Main Content Labels - Improved Contrast */
+/* Content labels and text */
 .content-label {
   color: #5a4a1a;
   font-size: 0.75rem;
@@ -200,7 +196,7 @@
   line-height: 1.5;
 }
 
-/* Form Input - Improved Styling */
+/* Form input styling */
 .chatbot-input {
   border-radius: 1.25rem;
   border: 2px solid #7a8c99;
@@ -227,7 +223,7 @@
   border-color: #4a6578;
 }
 
-/* Submit Button - Improved States */
+/* Submit button styling */
 .chatbot-submit-btn {
   background: linear-gradient(135deg, #1a3a52 0%, #254c6e 100%);
   border: none;
@@ -274,7 +270,7 @@
   box-shadow: none;
 }
 
-/* Accessibility Improvements */
+/* Accessibility focus states */
 .civiccase-glass-button:focus-visible,
 .chatbot-input:focus-visible,
 .chatbot-submit-btn:focus-visible {
@@ -282,7 +278,7 @@
   outline-offset: 2px;
 }
 
-/* Improved Metric Cards */
+/* Metric cards */
 .metric-label {
   background: rgba(0, 0, 0, 0.05);
   color: #17324d;
@@ -299,7 +295,7 @@
   border-color: rgba(23, 50, 77, 0.25);
 }
 
-/* Chart Cards */
+/* Chart styling */
 .chart-title {
   color: #102536;
   font-weight: bold;
@@ -322,7 +318,7 @@
   font-weight: 600;
 }
 
-/* Chat Bubble Animations */
+/* Animations */
 .chat-bubble-user,
 .chat-bubble-bot {
   animation: slideIn 0.3s ease-out;
@@ -339,7 +335,7 @@
   }
 }
 
-/* Loading Animation for Submit Button */
+/* Loading state animation */
 .chatbot-submit-btn:disabled {
   position: relative;
 }
@@ -364,7 +360,7 @@
   100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Status Colors with proper contrast */
+/* Status colors */
 .status-open {
   color: #db5c44;
 }
@@ -377,7 +373,7 @@
   color: #2c9c6a;
 }
 
-/* Badge Styling - Improved */
+/* Badge styling */
 .civiccase-badge-info {
   background: #f5f0e8;
   color: #102536;
@@ -405,7 +401,7 @@
   font-weight: 600;
 }
 
-/* On small screens - Improved Mobile Layout */
+/* Mobile layout */
 @media (max-width: 768px) {
   .civiccase-heading {
     font-size: 2rem;
@@ -439,7 +435,7 @@
   }
 }
 
-/* Medium screens */
+/* Tablet layout */
 @media (max-width: 991px) {
   .chat-history-container {
     padding: 0.875rem;

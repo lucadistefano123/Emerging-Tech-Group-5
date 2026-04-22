@@ -47,15 +47,13 @@ export const endpointSchemas = {
 export const validateGraphQLQuery = (req, res, next) => {
   const { operationName, query } = req.body || {};
 
-  // Check for suspicious patterns
   const suspiciousPatterns = [
-    /__typename/i, // Introspection queries
-    /fragment\s+\w+\s+on\s+__/i, // Fragment introspection
+    /__typename/i,
+    /fragment\s+\w+\s+on\s+__/i,
   ];
 
   for (const pattern of suspiciousPatterns) {
     if (pattern.test(query)) {
-      // Log suspicious query
       console.warn(`[SECURITY] Suspicious GraphQL query from ${req.ip}:`, query.substring(0, 100));
     }
   }

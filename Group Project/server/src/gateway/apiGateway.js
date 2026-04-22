@@ -1,36 +1,18 @@
-/**
- * API Gateway - Central Request Validation & Security Layer
- * 
- * Features:
- * - Request validation (schema, type, format)
- * - Rate limiting per endpoint and user
- * - Request/response logging with correlation IDs
- * - Input sanitization and injection prevention
- * - Request size limits
- * - Timeout handling
- * - Security headers
- * - Error transformation
- */
+// API Gateway - Central Request Validation & Security Layer
 
 import { v4 as uuidv4 } from "uuid";
 import validator from "validator";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-// ============================================
-// 1. REQUEST ID MIDDLEWARE (for tracking)
-// ============================================
-
+// REQUEST ID MIDDLEWARE - for tracking requests
 export const requestIdMiddleware = (req, res, next) => {
   req.id = req.headers["x-request-id"] || uuidv4();
   res.setHeader("X-Request-ID", req.id);
   next();
 };
 
-// ============================================
-// 2. SECURITY HEADERS (Helmet configuration)
-// ============================================
-
+// SECURITY HEADERS - Helmet configuration
 export const securityHeadersMiddleware = helmet({
   contentSecurityPolicy: {
     directives: {
@@ -60,15 +42,11 @@ export const securityHeadersMiddleware = helmet({
   }
 });
 
-// ============================================
-// 3. INPUT SANITIZATION MIDDLEWARE
-// ============================================
-
+// INPUT SANITIZATION MIDDLEWARE
 const sanitizeObject = (obj) => {
   if (obj === null || obj === undefined) return obj;
 
   if (typeof obj === "string") {
-    // Remove HTML tags, trim whitespace
     return validator.trim(validator.escape(obj));
   }
 
@@ -99,10 +77,7 @@ export const inputSanitizationMiddleware = (req, res, next) => {
   next();
 };
 
-// ============================================
-// 4. PAYLOAD SIZE LIMIT MIDDLEWARE
-// ============================================
-
+// PAYLOAD SIZE LIMIT MIDDLEWARE
 export const payloadSizeMiddleware = (req, res, next) => {
   const contentLength = req.headers["content-length"];
 
@@ -120,10 +95,7 @@ export const payloadSizeMiddleware = (req, res, next) => {
   next();
 };
 
-// ============================================
-// 5. RATE LIMITING BY ENDPOINT
-// ============================================
-
+// RATE LIMITING BY ENDPOINT
 export const createEndpointRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
   return rateLimit({
     windowMs,
@@ -132,7 +104,6 @@ export const createEndpointRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) 
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => {
-      // Skip rate limiting for certain paths (e.g., health checks)
       return req.path === "/health" || req.path === "/status";
     },
     handler: (req, res) => {
@@ -162,21 +133,16 @@ export const apiRateLimiter = createEndpointRateLimiter(
   30 // 30 requests per minute
 );
 
-// ============================================
-// 6. REQUEST VALIDATION MIDDLEWARE
-// ============================================
-
+// REQUEST VALIDATION MIDDLEWARE
 export const validateRequest = (schema) => {
   return (req, res, next) => {
     try {
-      // Validate body, query, and params against schema
       const data = {
         body: req.body || {},
         query: req.query || {},
         params: req.params || {}
       };
 
-      // Basic validation - can be extended with Joi or Zod
       if (schema.body) {
         for (const key in schema.body) {
           if (schema.body[key].required && !req.body?.[key]) {
@@ -187,7 +153,6 @@ export const validateRequest = (schema) => {
             });
           }
 
-          // Type validation
           if (req.body?.[key]) {
             const expectedType = schema.body[key].type;
             const actualType = typeof req.body[key];
@@ -214,10 +179,7 @@ export const validateRequest = (schema) => {
   };
 };
 
-// ============================================
-// 7. REQUEST TIMEOUT MIDDLEWARE
-// ============================================
-
+// REQUEST TIMEOUT MIDDLEWARE
 export const requestTimeoutMiddleware = (timeout = 30000) => {
   return (req, res, next) => {
     const timeoutId = setTimeout(() => {
@@ -237,19 +199,13 @@ export const requestTimeoutMiddleware = (timeout = 30000) => {
   };
 };
 
-// ============================================
-// 8. LOGGING MIDDLEWARE
-// ============================================
-
+// LOGGING MIDDLEWARE
 export const loggingMiddleware = (req, res, next) => {
   const startTime = Date.now();
-
-  // Capture original res.json to log responses
   const originalJson = res.json.bind(res);
 
   res.json = function (data) {
     const duration = Date.now() - startTime;
-
     const logData = {
       requestId: req.id,
       timestamp: new Date().toISOString(),
@@ -262,16 +218,11 @@ export const loggingMiddleware = (req, res, next) => {
       userId: req.user?.id || "anonymous"
     };
 
-    // Log to console in development
     if (process.env.NODE_ENV !== "production") {
       console.log(
         `[${logData.statusCode}] ${logData.method} ${logData.path} - ${logData.duration}`
       );
     }
-
-    // In production, log to external service (e.g., CloudWatch, Datadog, etc.)
-    // Example:
-    // loggerService.log(logData);
 
     return originalJson(data);
   };
@@ -279,14 +230,10 @@ export const loggingMiddleware = (req, res, next) => {
   next();
 };
 
-// ============================================
-// 9. ERROR HANDLING MIDDLEWARE
-// ============================================
-
+// ERROR HANDLING MIDDLEWARE
 export const errorHandlingMiddleware = (err, req, res, next) => {
   console.error(`[ERROR] RequestID: ${req.id} - ${err.message}`);
 
-  // Handle specific error types
   if (err.name === "ValidationError") {
     return res.status(400).json({
       error: "Validation failed",
@@ -311,7 +258,6 @@ export const errorHandlingMiddleware = (err, req, res, next) => {
     });
   }
 
-  // Default error response
   res.status(err.status || 500).json({
     error: err.name || "Internal server error",
     message: err.message || "An unexpected error occurred",
@@ -320,15 +266,10 @@ export const errorHandlingMiddleware = (err, req, res, next) => {
   });
 };
 
-// ============================================
-// 10. API VERSIONING MIDDLEWARE
-// ============================================
-
+// API VERSIONING MIDDLEWARE
 export const apiVersioning = (req, res, next) => {
-  // Extract API version from header or URL
   req.apiVersion = req.headers["x-api-version"] || "v1";
 
-  // Check for deprecated API versions
   const deprecatedVersions = ["v0"];
   if (deprecatedVersions.includes(req.apiVersion)) {
     res.setHeader("X-API-Warn", "This API version is deprecated");
@@ -337,23 +278,17 @@ export const apiVersioning = (req, res, next) => {
   next();
 };
 
-// ============================================
-// 11. CORS WITH SAFE DEFAULTS
-// ============================================
-
+// CORS WITH SAFE DEFAULTS
 export const corsConfig = {
   origin: process.env.ALLOWED_ORIGINS?.split(",") || ["http://localhost:5173", "http://localhost:3000"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID", "X-API-Version"],
   exposedHeaders: ["X-Request-ID", "X-API-Version", "X-RateLimit-Limit", "X-RateLimit-Remaining"],
-  maxAge: 86400 // 24 hours
+  maxAge: 86400
 };
 
-// ============================================
-// 12. HEALTH CHECK ENDPOINT
-// ============================================
-
+// HEALTH CHECK ENDPOINT
 export const healthCheckEndpoint = (req, res) => {
   res.status(200).json({
     status: "healthy",
@@ -363,10 +298,7 @@ export const healthCheckEndpoint = (req, res) => {
   });
 };
 
-// ============================================
-// 13. API STATUS/METRICS ENDPOINT
-// ============================================
-
+// METRICS AND STATISTICS
 let requestStats = {
   totalRequests: 0,
   errorRequests: 0,
@@ -400,10 +332,7 @@ export const metricsEndpoint = (req, res) => {
   });
 };
 
-// ============================================
-// 14. REQUEST INTERCEPTOR FOR GEMINI API
-// ============================================
-
+// GEMINI API REQUEST INTERCEPTOR
 export const createGeminiRequestInterceptor = () => {
   return async (req, res, next) => {
     const originalFetch = global.fetch;
@@ -423,9 +352,8 @@ export const createGeminiRequestInterceptor = () => {
           `[GEMINI-API] ${options.method || "GET"} ${requestUrl.split("?")[0]}`
         );
 
-        // Add timeout
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeout = setTimeout(() => controller.abort(), 30000);
         options.signal = controller.signal;
 
         try {

@@ -109,7 +109,7 @@ app.get("/analytics", authenticate, async (req, res) => {
   }
 });
 
-app.post("/chatbot", async (req, res) => { // temporarily removed authenticate for testing
+app.post("/chatbot", async (req, res) => {
   try {
     const { message } = req.body;
     if (!message?.trim()) {
