@@ -70,7 +70,10 @@ export default function StaffIssuesPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(parseInt(dateString, 10)).toLocaleDateString("en-US", {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
